@@ -2,14 +2,15 @@ import { useState, useEffect, useRef } from "react";
 
 const TMDB_W = "https://image.tmdb.org/t/p/w500";
 const TMDB_BG = "https://image.tmdb.org/t/p/w1280";
+const TMDB_KEY = import.meta.env.VITE_TMDB_KEY;
 
 const CATALOG = [
   {
-  id: 181808, type: "movie", title: "Star Wars: The Last Jedi", year: 2017, rating: 7.0,
-  genres: ["Action", "Adventure", "Sci-Fi"],
-  poster: "/kOVEVeg59E0wsnXmF9nrh6OmWII.jpg",
-  backdrop: "/5Iw7zQTHVRBOi772Yi3wLkcvDGo.jpg",
-  overview: "I really want to watch this movie",
+    id: 181808, type: "movie", title: "Star Wars: The Last Jedi", year: 2017, rating: 7.0,
+    genres: ["Action", "Adventure", "Sci-Fi"],
+    poster: "/kOVEVeg59E0wsnXmF9nrh6OmWII.jpg",
+    backdrop: "/5Iw7zQTHVRBOi772Yi3wLkcvDGo.jpg",
+    overview: "I really want to watch this movie",
   },
   {
     id: 155, type: "movie", title: "The Dark Knight", year: 2008, rating: 9.0,
@@ -169,17 +170,32 @@ const CATALOG = [
 
 const ALL_GENRES = ["All", ...Array.from(new Set(CATALOG.flatMap(m => m.genres))).sort()];
 
-function PosterCard({ item, onClick, featured }) {
+// Normalize a TMDB /search/multi result into our item shape
+function normalizeTMDB(r) {
+  if (r.media_type === "person") return null;
+  const type = r.media_type; // "movie" | "tv"
+  const dateStr = type === "tv" ? r.first_air_date : r.release_date;
+  return {
+    id: r.id,
+    type,
+    title: type === "tv" ? r.name : r.title,
+    year: parseInt(dateStr?.split("-")[0]) || 0,
+    rating: Math.round(r.vote_average * 10) / 10,
+    poster: r.poster_path || null,
+    backdrop: r.backdrop_path || null,
+    overview: r.overview || "",
+    genres: [],          // genre_ids come as numbers; we skip mapping for simplicity
+    seasons: undefined,  // not available from search; modal falls back to manual inputs
+    episodesPerSeason: undefined,
+  };
+}
+
+function PosterCard({ item, onClick }) {
   const [imgErr, setImgErr] = useState(false);
   return (
     <div
       onClick={() => onClick(item)}
-      style={{
-        cursor: "pointer",
-        transition: "transform 0.25s ease",
-        flex: featured ? "0 0 auto" : undefined,
-        width: featured ? 140 : undefined,
-      }}
+      style={{ cursor: "pointer", transition: "transform 0.25s ease" }}
       onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05) translateY(-4px)"}
       onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
     >
@@ -188,7 +204,7 @@ function PosterCard({ item, onClick, featured }) {
         background: "#1a1a2a", position: "relative",
         border: "1px solid rgba(255,255,255,0.06)",
       }}>
-        {!imgErr ? (
+        {!imgErr && item.poster ? (
           <img
             src={`${TMDB_W}${item.poster}`}
             alt={item.title}
@@ -208,10 +224,7 @@ function PosterCard({ item, onClick, featured }) {
           position: "absolute", inset: 0,
           background: "linear-gradient(to top, rgba(8,8,16,0.9) 0%, transparent 55%)",
         }} />
-        <div style={{
-          position: "absolute", bottom: 10, left: 10,
-          display: "flex", alignItems: "center", gap: 6,
-        }}>
+        <div style={{ position: "absolute", bottom: 10, left: 10 }}>
           <span style={{ color: "#f5c842", fontSize: 10, fontWeight: 700 }}>★ {item.rating}</span>
         </div>
         {item.type === "tv" && (
@@ -223,7 +236,7 @@ function PosterCard({ item, onClick, featured }) {
         )}
       </div>
       <div style={{ marginTop: 10 }}>
-        <div style={{ fontSize: 12, fontWeight: 500, color: "#e8e8e8", lineHeight: 1.4, letterSpacing: "0.01em" }}>{item.title}</div>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "#e8e8e8", lineHeight: 1.4 }}>{item.title}</div>
         <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 3 }}>{item.year}</div>
       </div>
     </div>
@@ -232,17 +245,23 @@ function PosterCard({ item, onClick, featured }) {
 
 function EpisodeModal({ item, onClose }) {
   const iframeRef = useRef(null);
-  const maxSeason = item.seasons || 1;
+  const maxSeason = item.seasons || null;
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [playing, setPlaying] = useState(false);
-  const eps = item.episodesPerSeason?.[season - 1] || 10;
+  const eps = item.episodesPerSeason?.[season - 1] || null;
 
   const vidSrc = item.type === "tv"
     ? `https://www.vidking.net/embed/tv/${item.id}/${season}/${episode}?color=f5c842&autoPlay=true&nextEpisode=true&episodeSelector=true`
     : `https://www.vidking.net/embed/movie/${item.id}?color=f5c842&autoPlay=true`;
 
   const goFullscreen = () => iframeRef.current?.requestFullscreen();
+
+  const inputStyle = {
+    background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
+    color: "#fff", padding: "8px 12px", borderRadius: 6, fontSize: 13,
+    width: 80, outline: "none", textAlign: "center",
+  };
 
   return (
     <div
@@ -257,27 +276,26 @@ function EpisodeModal({ item, onClose }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: 1000,
-          background: "#0d0d1a",
-          borderRadius: 14,
-          overflow: "hidden",
+          width: "100%", maxWidth: 1000, background: "#0d0d1a",
+          borderRadius: 14, overflow: "hidden",
           border: "1px solid rgba(245,200,66,0.18)",
           boxShadow: "0 40px 80px rgba(0,0,0,0.8)",
         }}
       >
-        {/* Modal header */}
+        {/* Header */}
         <div style={{
           display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-          padding: "20px 24px 16px",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          padding: "20px 24px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)",
         }}>
           <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-            <img
-              src={`${TMDB_W}${item.poster}`}
-              alt={item.title}
-              onError={e => e.target.style.display = "none"}
-              style={{ width: 52, height: 78, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}
-            />
+            {item.poster && (
+              <img
+                src={`${TMDB_W}${item.poster}`}
+                alt={item.title}
+                onError={e => e.target.style.display = "none"}
+                style={{ width: 52, height: 78, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}
+              />
+            )}
             <div>
               <h2 style={{
                 margin: "0 0 4px", fontSize: 22,
@@ -287,7 +305,9 @@ function EpisodeModal({ item, onClose }) {
               <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <span style={{ color: "#f5c842", fontSize: 13, fontWeight: 600 }}>★ {item.rating}</span>
                 <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>{item.year}</span>
-                <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>{item.genres.join(" · ")}</span>
+                {item.genres.length > 0 && (
+                  <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>{item.genres.join(" · ")}</span>
+                )}
               </div>
               <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: "8px 0 0", lineHeight: 1.6, maxWidth: 480 }}>
                 {item.overview}
@@ -309,40 +329,70 @@ function EpisodeModal({ item, onClose }) {
         {item.type === "tv" && !playing && (
           <div style={{ padding: "20px 24px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <label style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Season</label>
-                <div style={{ display: "flex", gap: 6 }}>
-                  {Array.from({ length: maxSeason }, (_, i) => i + 1).map(s => (
-                    <button
-                      key={s}
-                      onClick={() => { setSeason(s); setEpisode(1); }}
+
+              {/* Known seasons (CATALOG items) — show buttons + dropdown */}
+              {maxSeason ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <label style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Season</label>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {Array.from({ length: maxSeason }, (_, i) => i + 1).map(s => (
+                        <button
+                          key={s}
+                          onClick={() => { setSeason(s); setEpisode(1); }}
+                          style={{
+                            width: 34, height: 34, borderRadius: 6,
+                            background: season === s ? "#f5c842" : "rgba(255,255,255,0.06)",
+                            border: "1px solid " + (season === s ? "#f5c842" : "rgba(255,255,255,0.1)"),
+                            color: season === s ? "#0a0a10" : "rgba(255,255,255,0.6)",
+                            cursor: "pointer", fontSize: 13, fontWeight: season === s ? 700 : 400,
+                          }}
+                        >{s}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <label style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Episode</label>
+                    <select
+                      value={episode}
+                      onChange={e => setEpisode(Number(e.target.value))}
                       style={{
-                        width: 34, height: 34, borderRadius: 6,
-                        background: season === s ? "#f5c842" : "rgba(255,255,255,0.06)",
-                        border: "1px solid " + (season === s ? "#f5c842" : "rgba(255,255,255,0.1)"),
-                        color: season === s ? "#0a0a10" : "rgba(255,255,255,0.6)",
-                        cursor: "pointer", fontSize: 13, fontWeight: season === s ? 700 : 400,
+                        background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
+                        color: "#fff", padding: "8px 12px", borderRadius: 6, fontSize: 13,
+                        cursor: "pointer", appearance: "none", minWidth: 140,
                       }}
-                    >{s}</button>
-                  ))}
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <label style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Episode</label>
-                <select
-                  value={episode}
-                  onChange={e => setEpisode(Number(e.target.value))}
-                  style={{
-                    background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
-                    color: "#fff", padding: "8px 12px", borderRadius: 6, fontSize: 13, cursor: "pointer",
-                    appearance: "none", minWidth: 140,
-                  }}
-                >
-                  {Array.from({ length: eps }, (_, i) => i + 1).map(ep => (
-                    <option key={ep} value={ep} style={{ background: "#1a1a2a" }}>Episode {ep}</option>
-                  ))}
-                </select>
-              </div>
+                    >
+                      {Array.from({ length: eps || 20 }, (_, i) => i + 1).map(ep => (
+                        <option key={ep} value={ep} style={{ background: "#1a1a2a" }}>Episode {ep}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              ) : (
+                // Unknown seasons (came from TMDB live search) — plain number inputs
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <label style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Season</label>
+                    <input
+                      type="number" min="1" value={season}
+                      onChange={e => setSeason(Math.max(1, Number(e.target.value)))}
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <label style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Episode</label>
+                    <input
+                      type="number" min="1" value={episode}
+                      onChange={e => setEpisode(Math.max(1, Number(e.target.value)))}
+                      style={inputStyle}
+                    />
+                  </div>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
+                    (type any season / episode number)
+                  </span>
+                </>
+              )}
+
               <button
                 onClick={() => setPlaying(true)}
                 style={{
@@ -359,7 +409,7 @@ function EpisodeModal({ item, onClose }) {
         {(item.type === "movie" || playing) && (
           <div style={{ background: "#000" }}>
             <iframe
-              ref={iframeRef}          // ← add this ref
+              ref={iframeRef}
               src={vidSrc}
               width="100%" height={500}
               frameBorder="0"
@@ -367,7 +417,6 @@ function EpisodeModal({ item, onClose }) {
               allow="autoplay; fullscreen"
               style={{ display: "block" }}
             />
-            {/* Our own fullscreen button — bypasses Vidking's ad-triggering one */}
             <div style={{
               display: "flex", justifyContent: "flex-end",
               padding: "8px 12px", background: "#0a0a14",
@@ -375,7 +424,6 @@ function EpisodeModal({ item, onClose }) {
             }}>
               <button
                 onClick={goFullscreen}
-                title="Fullscreen (no ad)"
                 style={{
                   background: "rgba(245,200,66,0.1)", border: "1px solid rgba(245,200,66,0.3)",
                   color: "#f5c842", padding: "6px 14px", borderRadius: 6,
@@ -397,6 +445,38 @@ export default function App() {
   const [tab, setTab] = useState("all");
   const [featuredIdx, setFeaturedIdx] = useState(0);
 
+  // ── TMDB live search state ──────────────────────────────────────────────────
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const isLiveSearch = search.length >= 2;
+
+  useEffect(() => {
+    if (!isLiveSearch) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+    setIsSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_KEY}&query=${encodeURIComponent(search)}&include_adult=false`
+        );
+        const data = await res.json();
+        const results = (data.results || [])
+          .map(normalizeTMDB)
+          .filter(Boolean)
+          .filter(r => tab === "all" || r.type === tab); // respect tab filter even in live search
+        setSearchResults(results);
+      } catch (err) {
+        console.error("TMDB search failed:", err);
+        setSearchResults([]);
+      }
+      setIsSearching(false);
+    }, 400); // debounce 400ms
+    return () => clearTimeout(timer);
+  }, [search, tab]);
+
   useEffect(() => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
@@ -408,17 +488,19 @@ export default function App() {
 
   const featured = CATALOG[featuredIdx];
 
-  const filtered = CATALOG.filter(item => {
+  // When live searching, bypass CATALOG filtering entirely
+  const catalogFiltered = CATALOG.filter(item => {
     const matchSearch = item.title.toLowerCase().includes(search.toLowerCase());
     const matchGenre = genre === "All" || item.genres.includes(genre);
     const matchTab = tab === "all" || item.type === tab;
     return matchSearch && matchGenre && matchTab;
   });
 
-  const movies = filtered.filter(x => x.type === "movie");
-  const shows = filtered.filter(x => x.type === "tv");
+  const displayItems = isLiveSearch ? searchResults : catalogFiltered;
+  const movies = displayItems.filter(x => x.type === "movie");
+  const shows  = displayItems.filter(x => x.type === "tv");
   const showMovies = tab === "all" || tab === "movie";
-  const showTV = tab === "all" || tab === "tv";
+  const showTV     = tab === "all" || tab === "tv";
 
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif", background: "#080810", minHeight: "100vh", color: "#fff", overflowX: "hidden" }}>
@@ -430,100 +512,55 @@ export default function App() {
           backgroundImage: `url(${TMDB_BG}${featured.backdrop})`,
           backgroundSize: "cover", backgroundPosition: "center top",
           filter: "brightness(0.5)",
-          transition: "background-image 0.8s ease",
         }} />
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(90deg, rgba(8,8,16,0.98) 0%, rgba(8,8,16,0.7) 50%, rgba(8,8,16,0.2) 100%)",
-        }} />
-        <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0, height: 160,
-          background: "linear-gradient(to top, #080810, transparent)",
-        }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(8,8,16,0.98) 0%, rgba(8,8,16,0.7) 50%, rgba(8,8,16,0.2) 100%)" }} />
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 160, background: "linear-gradient(to top, #080810, transparent)" }} />
 
         {/* NAV */}
-        <nav style={{
-          position: "relative", padding: "28px 52px",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-        }}>
+        <nav style={{ position: "relative", padding: "28px 52px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-            <span style={{
-              fontFamily: "'Cinzel Display', serif", fontSize: 26, color: "#f5c842",
-              letterSpacing: "0.22em", fontWeight: 400,
-            }}>CINEMAX</span>
+            <span style={{ fontFamily: "'Cinzel Display', serif", fontSize: 26, color: "#f5c842", letterSpacing: "0.22em" }}>CINEMAX</span>
             <span style={{ fontSize: 10, color: "rgba(245,200,66,0.5)", letterSpacing: "0.3em" }}>STREAMING</span>
           </div>
           <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.06)", borderRadius: 8, padding: 4 }}>
             {[["all", "All"], ["movie", "Movies"], ["tv", "TV Shows"]].map(([val, label]) => (
-              <button
-                key={val}
-                onClick={() => setTab(val)}
-                style={{
-                  background: tab === val ? "#f5c842" : "transparent",
-                  border: "none",
-                  color: tab === val ? "#0a0a10" : "rgba(255,255,255,0.55)",
-                  padding: "8px 20px", borderRadius: 6,
-                  cursor: "pointer", fontSize: 13, fontWeight: tab === val ? 600 : 400,
-                  transition: "all 0.15s",
-                }}
-              >{label}</button>
+              <button key={val} onClick={() => setTab(val)} style={{
+                background: tab === val ? "#f5c842" : "transparent", border: "none",
+                color: tab === val ? "#0a0a10" : "rgba(255,255,255,0.55)",
+                padding: "8px 20px", borderRadius: 6, cursor: "pointer",
+                fontSize: 13, fontWeight: tab === val ? 600 : 400, transition: "all 0.15s",
+              }}>{label}</button>
             ))}
           </div>
         </nav>
 
         {/* HERO CONTENT */}
         <div style={{ position: "relative", padding: "20px 52px 0" }}>
-          <div style={{
-            fontSize: 10, letterSpacing: "0.35em", color: "#f5c842",
-            textTransform: "uppercase", marginBottom: 14, fontWeight: 500,
-          }}>✦ Featured Tonight</div>
-          <h1 style={{
-            fontFamily: "'Cinzel', serif", fontSize: 52,
-            margin: "0 0 14px", lineHeight: 1.05, maxWidth: 520,
-            color: "#f5f0e0", letterSpacing: "0.02em", fontWeight: 600,
-          }}>{featured.title}</h1>
+          <div style={{ fontSize: 10, letterSpacing: "0.35em", color: "#f5c842", textTransform: "uppercase", marginBottom: 14, fontWeight: 500 }}>✦ Featured Tonight</div>
+          <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: 52, margin: "0 0 14px", lineHeight: 1.05, maxWidth: 520, color: "#f5f0e0", letterSpacing: "0.02em", fontWeight: 600 }}>{featured.title}</h1>
           <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 16 }}>
             <span style={{ color: "#f5c842", fontWeight: 700, fontSize: 14 }}>★ {featured.rating}</span>
             <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>{featured.year}</span>
             <span style={{ color: "rgba(255,255,255,0.2)" }}>·</span>
             {featured.genres.map(g => (
-              <span key={g} style={{
-                fontSize: 11, color: "rgba(255,255,255,0.45)",
-                background: "rgba(255,255,255,0.07)", padding: "3px 9px",
-                borderRadius: 4, letterSpacing: "0.06em",
-              }}>{g}</span>
+              <span key={g} style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", background: "rgba(255,255,255,0.07)", padding: "3px 9px", borderRadius: 4, letterSpacing: "0.06em" }}>{g}</span>
             ))}
           </div>
-          <p style={{
-            color: "rgba(255,255,255,0.6)", maxWidth: 430, fontSize: 14,
-            lineHeight: 1.7, marginBottom: 28,
-          }}>{featured.overview}</p>
+          <p style={{ color: "rgba(255,255,255,0.6)", maxWidth: 430, fontSize: 14, lineHeight: 1.7, marginBottom: 28 }}>{featured.overview}</p>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <button
               onClick={() => setSelected(featured)}
-              style={{
-                background: "#f5c842", color: "#080810",
-                border: "none", padding: "13px 32px",
-                borderRadius: 7, fontSize: 14, fontWeight: 700,
-                cursor: "pointer", letterSpacing: "0.08em",
-                transition: "transform 0.15s, box-shadow 0.15s",
-                boxShadow: "0 4px 20px rgba(245,200,66,0.35)",
-              }}
+              style={{ background: "#f5c842", color: "#080810", border: "none", padding: "13px 32px", borderRadius: 7, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: "0.08em", boxShadow: "0 4px 20px rgba(245,200,66,0.35)" }}
               onMouseEnter={e => { e.target.style.transform = "translateY(-1px)"; e.target.style.boxShadow = "0 8px 28px rgba(245,200,66,0.45)"; }}
               onMouseLeave={e => { e.target.style.transform = "translateY(0)"; e.target.style.boxShadow = "0 4px 20px rgba(245,200,66,0.35)"; }}
             >▶ Watch Now</button>
             <div style={{ display: "flex", gap: 6 }}>
               {[0, 1, 2, 3, 4].map(i => (
-                <button
-                  key={i}
-                  onClick={() => setFeaturedIdx(i)}
-                  style={{
-                    width: i === featuredIdx ? 24 : 7, height: 7,
-                    borderRadius: 4, border: "none",
-                    background: i === featuredIdx ? "#f5c842" : "rgba(255,255,255,0.25)",
-                    cursor: "pointer", padding: 0, transition: "all 0.3s",
-                  }}
-                />
+                <button key={i} onClick={() => setFeaturedIdx(i)} style={{
+                  width: i === featuredIdx ? 24 : 7, height: 7, borderRadius: 4, border: "none",
+                  background: i === featuredIdx ? "#f5c842" : "rgba(255,255,255,0.25)",
+                  cursor: "pointer", padding: 0, transition: "all 0.3s",
+                }} />
               ))}
             </div>
           </div>
@@ -534,105 +571,91 @@ export default function App() {
       <div style={{ padding: "36px 52px 0" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 20 }}>
           <div style={{ position: "relative" }}>
-            <span style={{
-              position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)",
-              fontSize: 14, color: "rgba(255,255,255,0.3)",
-            }}>🔍</span>
+            <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: "rgba(255,255,255,0.3)" }}>
+              {isSearching ? "⏳" : "🔍"}
+            </span>
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search titles..."
+              placeholder="Search any movie or TV show…"
               style={{
                 background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
                 color: "#fff", padding: "11px 16px 11px 38px", borderRadius: 8,
-                fontSize: 14, width: 260, outline: "none",
+                fontSize: 14, width: 300, outline: "none",
               }}
               onFocus={e => e.target.style.borderColor = "rgba(245,200,66,0.5)"}
               onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
             />
           </div>
+          {/* Live search badge */}
+          {isLiveSearch && (
+            <span style={{ fontSize: 12, color: "rgba(245,200,66,0.7)", letterSpacing: "0.08em" }}>
+              {isSearching ? "Searching TMDB…" : `${displayItems.length} results for "${search}"`}
+            </span>
+          )}
         </div>
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-          {ALL_GENRES.map(g => (
-            <button
-              key={g}
-              onClick={() => setGenre(g)}
-              style={{
+
+        {/* Genre filter — hidden during live search since TMDB results have no genre names */}
+        {!isLiveSearch && (
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+            {ALL_GENRES.map(g => (
+              <button key={g} onClick={() => setGenre(g)} style={{
                 background: genre === g ? "#f5c842" : "rgba(255,255,255,0.05)",
                 border: "1px solid " + (genre === g ? "#f5c842" : "rgba(255,255,255,0.1)"),
                 color: genre === g ? "#0a0a10" : "rgba(255,255,255,0.55)",
                 padding: "6px 15px", borderRadius: 20, cursor: "pointer",
-                fontSize: 12, fontWeight: genre === g ? 600 : 400,
-                transition: "all 0.15s",
-              }}
-            >{g}</button>
-          ))}
-        </div>
+                fontSize: 12, fontWeight: genre === g ? 600 : 400, transition: "all 0.15s",
+              }}>{g}</button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* MOVIES SECTION */}
+      {/* MOVIES */}
       {showMovies && movies.length > 0 && (
         <section style={{ padding: "36px 52px 0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22 }}>
-            <h2 style={{
-              fontFamily: "'Cinzel', serif", fontSize: 15, margin: 0,
-              color: "#f5c842", letterSpacing: "0.18em", textTransform: "uppercase",
-            }}>Movies</h2>
+            <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: 15, margin: 0, color: "#f5c842", letterSpacing: "0.18em", textTransform: "uppercase" }}>
+              {isLiveSearch ? "Movies" : "Movies"}
+            </h2>
             <div style={{ flex: 1, height: 1, background: "rgba(245,200,66,0.15)" }} />
             <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>{movies.length} titles</span>
           </div>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))",
-            gap: "24px 18px",
-          }}>
-            {movies.map(item => (
-              <PosterCard key={item.id} item={item} onClick={setSelected} />
-            ))}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))", gap: "24px 18px" }}>
+            {movies.map(item => <PosterCard key={item.id} item={item} onClick={setSelected} />)}
           </div>
         </section>
       )}
 
-      {/* TV SHOWS SECTION */}
+      {/* TV SHOWS */}
       {showTV && shows.length > 0 && (
         <section style={{ padding: "40px 52px 60px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22 }}>
-            <h2 style={{
-              fontFamily: "'Cinzel', serif", fontSize: 15, margin: 0,
-              color: "#f5c842", letterSpacing: "0.18em", textTransform: "uppercase",
-            }}>TV Series</h2>
+            <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: 15, margin: 0, color: "#f5c842", letterSpacing: "0.18em", textTransform: "uppercase" }}>TV Series</h2>
             <div style={{ flex: 1, height: 1, background: "rgba(245,200,66,0.15)" }} />
             <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>{shows.length} titles</span>
           </div>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))",
-            gap: "24px 18px",
-          }}>
-            {shows.map(item => (
-              <PosterCard key={item.id} item={item} onClick={setSelected} />
-            ))}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))", gap: "24px 18px" }}>
+            {shows.map(item => <PosterCard key={item.id} item={item} onClick={setSelected} />)}
           </div>
         </section>
       )}
 
-      {filtered.length === 0 && (
+      {!isSearching && displayItems.length === 0 && (
         <div style={{ textAlign: "center", padding: "80px 0", color: "rgba(255,255,255,0.25)" }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>🎬</div>
-          <div style={{ fontFamily: "'Cinzel', serif", letterSpacing: "0.1em" }}>No titles found</div>
+          <div style={{ fontFamily: "'Cinzel', serif", letterSpacing: "0.1em" }}>
+            {isLiveSearch ? `No results for "${search}"` : "No titles found"}
+          </div>
         </div>
       )}
 
       {/* FOOTER */}
-      <div style={{
-        borderTop: "1px solid rgba(255,255,255,0.06)", padding: "24px 52px",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-      }}>
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "24px 52px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontFamily: "'Cinzel Display', serif", color: "rgba(245,200,66,0.4)", fontSize: 14, letterSpacing: "0.2em" }}>CINEMAX</span>
         <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", letterSpacing: "0.06em" }}>Powered by Vidking Player · Built for hackathon demo</span>
       </div>
 
-      {/* MODAL */}
       {selected && <EpisodeModal item={selected} onClose={() => setSelected(null)} />}
     </div>
   );
