@@ -4,189 +4,92 @@ const TMDB_W = "https://image.tmdb.org/t/p/w500";
 const TMDB_BG = "https://image.tmdb.org/t/p/w1280";
 const TMDB_KEY = import.meta.env.VITE_TMDB_KEY;
 
+// ── Color tokens (mirror of index.css vars, for inline styles) ───────────────
+const C = {
+  accent:       "#729C65",
+  accentDark:   "#4E763B",
+  accentMuted:  "#637462",
+  accentDim:    "#6D835C",
+  bg:           "#080f08",
+  bgModal:      "#0b140b",
+  bgCard:       "#121a12",
+  bgBar:        "#080e08",
+  border:       "rgba(114,156,101,0.18)",
+  borderStrong: "rgba(114,156,101,0.35)",
+};
+
 const CATALOG = [
+  // MOVIES
   {
-    id: 181808, type: "movie", title: "Star Wars: The Last Jedi", year: 2017, rating: 7.0,
-    genres: ["Action", "Adventure", "Sci-Fi"],
-    poster: "/kOVEVeg59E0wsnXmF9nrh6OmWII.jpg",
-    backdrop: "/5Iw7zQTHVRBOi772Yi3wLkcvDGo.jpg",
-    overview: "I really want to watch this movie",
+    id: 11, type: "movie", title: "Star Wars: Episode IV - A New Hope", year: 1977, rating: 8.6,
+    genres: ["Adventure", "Action", "Sci-Fi"],
+    poster: "/6FfCtAuVAW8XJjZ7eWeLibRLWTw.jpg",
+    backdrop: "/zqkmTXzjkAgXmEWLRsY4UpTWCeo.jpg",
+    overview: "Princess Leia is captured and held hostage by the evil Imperial forces in their effort to take over the galactic Empire. Venturesome Luke Skywalker and dashing captain Han Solo team together with the loveable robot duo R2-D2 and C-3PO to rescue the beautiful princess and restore peace and justice in the Empire."
   },
   {
-    id: 155, type: "movie", title: "The Dark Knight", year: 2008, rating: 9.0,
-    genres: ["Action", "Crime", "Drama"],
-    poster: "/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
-    backdrop: "/hkBaDkMWbLaf8B1lsWsKX7Ew3Xq.jpg",
-    overview: "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.",
-  },
-  {
-    id: 27205, type: "movie", title: "Inception", year: 2010, rating: 8.8,
-    genres: ["Action", "Sci-Fi", "Thriller"],
-    poster: "/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg",
-    backdrop: "/s3TBrRGB1iav7gFOCNx3H31MoES.jpg",
-    overview: "A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O.",
-  },
-  {
-    id: 157336, type: "movie", title: "Interstellar", year: 2014, rating: 8.7,
-    genres: ["Sci-Fi", "Drama", "Adventure"],
-    poster: "/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
-    backdrop: "/xJHokMbljvjADYdit5fK5VQsXEG.jpg",
-    overview: "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.",
-  },
-  {
-    id: 278, type: "movie", title: "The Shawshank Redemption", year: 1994, rating: 9.3,
-    genres: ["Drama", "Crime"],
-    poster: "/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg",
-    backdrop: "/avedvodAZUcwqevBfm8p4G2NziQ.jpg",
-    overview: "Two imprisoned men bond over several years, finding solace and eventual redemption through acts of common decency.",
-  },
-  {
-    id: 680, type: "movie", title: "Pulp Fiction", year: 1994, rating: 8.9,
-    genres: ["Crime", "Drama", "Thriller"],
-    poster: "/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg",
-    backdrop: "/4cDFJr4HnXN5AdPw4AKrmLlPLAF.jpg",
-    overview: "The lives of two mob hitmen, a boxer, a gangster and his wife, and a pair of diner bandits intertwine in four tales of violence and redemption.",
-  },
-  {
-    id: 238, type: "movie", title: "The Godfather", year: 1972, rating: 9.2,
-    genres: ["Crime", "Drama"],
-    poster: "/3bhkrj58Vtu7enYsLegHnDcdh9.jpg",
-    backdrop: "/tmU7GeKVybMWFButWEGl2M4GeiP.jpg",
-    overview: "The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant son.",
-  },
-  {
-    id: 603, type: "movie", title: "The Matrix", year: 1999, rating: 8.7,
-    genres: ["Action", "Sci-Fi"],
-    poster: "/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg",
-    backdrop: "/fNG7i7RqMErkcqhohV2a6cV1Ehy.jpg",
-    overview: "A computer hacker learns about the true nature of his reality and his role in the war against its controllers.",
-  },
-  {
-    id: 496243, type: "movie", title: "Parasite", year: 2019, rating: 8.5,
-    genres: ["Drama", "Thriller", "Comedy"],
-    poster: "/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
-    backdrop: "/TU9NIjwzjoKPwQHoHshkFcQUCG.jpg",
-    overview: "Greed and class discrimination threaten the newly formed symbiotic relationship between the wealthy Park family and the destitute Kim clan.",
-  },
-  {
-    id: 299534, type: "movie", title: "Avengers: Endgame", year: 2019, rating: 8.4,
-    genres: ["Action", "Adventure", "Sci-Fi"],
-    poster: "/or06FN3Dka5tukK1e9sl16pB3iy.jpg",
-    backdrop: "/orjiB3oUIsyz60hoEqkiGpy5CeO.jpg",
-    overview: "After the devastating events of Infinity War, the Avengers assemble once more to reverse Thanos's actions and restore balance to the universe.",
-  },
-  {
-    id: 475557, type: "movie", title: "Joker", year: 2019, rating: 8.2,
-    genres: ["Crime", "Drama", "Thriller"],
-    poster: "/udDclJoHjfjb8Ekgsd4FDteOkCU.jpg",
-    backdrop: "/n6bUvigpRFqSwmPp1ZklAdZag4M.jpg",
-    overview: "In Gotham City, mentally troubled comedian Arthur Fleck embarks on a downward spiral of revolution and bloody crime.",
-  },
-  {
-    id: 361743, type: "movie", title: "Top Gun: Maverick", year: 2022, rating: 8.3,
-    genres: ["Action", "Drama"],
-    poster: "/62HCnUTziyWcpDaBO2i1DX17ljH.jpg",
-    backdrop: "/AkB1pBYzOmN6kRkyXyZoqKEpIQ.jpg",
-    overview: "After more than thirty years of service as a top naval aviator, Pete Mitchell is where he belongs, pushing the envelope as a courageous test pilot.",
-  },
-  {
-    id: 634649, type: "movie", title: "Spider-Man: No Way Home", year: 2021, rating: 8.2,
-    genres: ["Action", "Adventure", "Sci-Fi"],
-    poster: "/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg",
-    backdrop: "/iQFcwSGbZXMkeyKrxbPnwnRo5fl.jpg",
-    overview: "With Spider-Man's identity now revealed, Peter asks Doctor Strange for help. When a spell goes wrong, dangerous foes from other worlds start to appear.",
-  },
-  {
-    id: 98, type: "movie", title: "Gladiator", year: 2000, rating: 8.5,
-    genres: ["Action", "Adventure", "Drama"],
-    poster: "/ty8TGRuvJLPUmAR1H1nRIsgwvim.jpg",
-    backdrop: "/6WBIzCgmDCYrqh64yDREGeDk9d3.jpg",
-    overview: "A former Roman general sets out to exact vengeance against the corrupt emperor who murdered his family and sent him into slavery.",
-  },
-  {
-    id: 13, type: "movie", title: "Forrest Gump", year: 1994, rating: 8.8,
-    genres: ["Drama", "Comedy", "Romance"],
-    poster: "/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg",
-    backdrop: "/qdIMHd4sEfJSckfVJfKQvisL02a.jpg",
-    overview: "The presidencies of Kennedy and Johnson, Vietnam, Watergate and other history unfold through the perspective of an Alabama man with an IQ of 75.",
+    id: 380, type: "movie", title: "Rain Man", year: 1988, rating: 8.0,
+    genres: ["Drama"],
+    poster: "/aWCSqmznoEWx4352pEDxWj586L4.jpg",
+    backdrop: "/7GvSObYjVz0JmYq05p2Wf0G5Z1A.jpg",
+    overview: "When car dealer Charlie Babbitt learns that his estranged father has died, he returns home to Cincinnati, where he discovers that he has an autistic older brother named Raymond and that his father's $3 million fortune is being left to the mental institution in which Raymond lives."
   },
   {
     id: 550, type: "movie", title: "Fight Club", year: 1999, rating: 8.8,
     genres: ["Drama", "Thriller"],
     poster: "/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
     backdrop: "/87hTDiay2N2qWyX4Ds7HRDmr1of.jpg",
-    overview: "An insomniac office worker and a devil-may-care soapmaker form an underground fight club that evolves into something much, much more.",
+    overview: "An insomniac office worker and a devil-may-care soapmaker form an underground fight club that evolves into something much, much more."
+  },
+  {
+    id: 557, type: "movie", title: "Spider-Man", year: 2002, rating: 7.4,
+    genres: ["Action", "Sci-Fi"],
+    poster: "/gh4cZbhZxyTbgxQPxD0dOudNPTn.jpg",
+    backdrop: "/sYn3X08Vd05qfW2v2Y1Q0B7Kj7p.jpg",
+    overview: "After being bitten by a genetically altered spider, nerdy high school student Peter Parker is endowed with amazing powers to become the superhero known as Spider-Man."
   },
   // TV SHOWS
+  {
+    id: 60059, type: "tv", title: "Better Call Saul", year: 2015, rating: 8.9,
+    genres: ["Crime", "Drama"],
+    poster: "/fC2HDm5t0kHlAMOINqdpWcle0qG.jpg",
+    backdrop: "/pXjpqrx65RlRAhvGuCvVRkZYTij.jpg",
+    overview: "The trials and tribulations of criminal lawyer Jimmy McGill in the years leading up to his fateful run-in with Walter White and Jesse Pinkman.",
+    seasons: 6, episodesPerSeason: [10, 10, 10, 10, 10, 13]
+  },
   {
     id: 1396, type: "tv", title: "Breaking Bad", year: 2008, rating: 9.5,
     genres: ["Crime", "Drama", "Thriller"],
     poster: "/ggFHVNu6YYI5L9pCfOacjizRGt.jpg",
     backdrop: "/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg",
     overview: "A high school chemistry teacher diagnosed with inoperable lung cancer turns to manufacturing and selling methamphetamine with a former student.",
-    seasons: 5, episodesPerSeason: [7, 13, 13, 13, 16],
+    seasons: 5, episodesPerSeason: [7, 13, 13, 13, 16]
   },
   {
-    id: 1399, type: "tv", title: "Game of Thrones", year: 2011, rating: 9.3,
-    genres: ["Action", "Drama", "Fantasy"],
-    poster: "/u3bZgnGQ9T01sWNhyveQz0wH0Hl.jpg",
-    backdrop: "/suopoADq0k8YZr4dQXcU6t0qLOD.jpg",
-    overview: "Nine noble families fight for control over the mythical lands of Westeros, while an ancient enemy awakens after being dormant for millennia.",
-    seasons: 8, episodesPerSeason: [10, 10, 10, 10, 10, 10, 7, 6],
-  },
-  {
-    id: 66732, type: "tv", title: "Stranger Things", year: 2016, rating: 8.7,
-    genres: ["Drama", "Sci-Fi", "Horror"],
-    poster: "/49WJfeN0moxb9IPfGn8AIqMGskD.jpg",
-    backdrop: "/56v2KjBlU4XaOv9rVYEQypROD7P.jpg",
-    overview: "When a young boy disappears, his mother, a police chief and his friends must confront terrifying supernatural forces in order to get him back.",
-    seasons: 4, episodesPerSeason: [8, 9, 8, 9],
-  },
-  {
-    id: 119051, type: "tv", title: "Wednesday", year: 2022, rating: 8.2,
-    genres: ["Comedy", "Drama", "Fantasy"],
-    poster: "/9PFonBhy4cQy7hjrnPlavi2adXR.jpg",
-    backdrop: "/iHSwvRVsRyxpX7FE7GbviaDvgGZ.jpg",
-    overview: "Follows Wednesday Addams' years as a student at Nevermore Academy, where she attempts to master her emerging psychic ability.",
-    seasons: 2, episodesPerSeason: [8, 8],
-  },
-  {
-    id: 60574, type: "tv", title: "Peaky Blinders", year: 2013, rating: 8.8,
+    id: 1416, type: "tv", title: "The Sopranos", year: 1999, rating: 9.2,
     genres: ["Crime", "Drama"],
-    poster: "/vUUqzWa2LnHIVqkaKVn3nyfVJNh.jpg",
-    backdrop: "/wiE9doxiLwq3WgBelow88Fpb6eA.jpg",
-    overview: "A gangster family epic set in 1900s England, centering on a gang who sew razor blades in the peaks of their caps.",
-    seasons: 6, episodesPerSeason: [6, 6, 6, 6, 6, 6],
-  },
-  {
-    id: 65494, type: "tv", title: "The Crown", year: 2016, rating: 8.6,
-    genres: ["Drama", "History"],
-    poster: "/6jKDiVBFHAS77JkGX4lI6gR7VCR.jpg",
-    backdrop: "/m1ggcLNouveFdZLPWXOlb6oGT2C.jpg",
-    overview: "Follows the political rivalries and romance of Queen Elizabeth II's reign and the events that shaped the second half of the twentieth century.",
-    seasons: 6, episodesPerSeason: [10, 10, 10, 10, 10, 10],
-  },
+    poster: "/8tq5lQdG00Rz0Qe23h6LntD2p3p.jpg",
+    backdrop: "/uzq1RzB1Q8D1eA1gL01N4e4G7mO.jpg",
+    overview: "New Jersey mob boss Tony Soprano deals with personal and professional issues in his home and business life that affect his mental state, leading him to seek professional psychiatric counseling.",
+    seasons: 6, episodesPerSeason: [13, 13, 13, 13, 13, 21]
+  }
 ];
 
 const ALL_GENRES = ["All", ...Array.from(new Set(CATALOG.flatMap(m => m.genres))).sort()];
 
-// Normalize a TMDB /search/multi result into our item shape
 function normalizeTMDB(r) {
   if (r.media_type === "person") return null;
-  const type = r.media_type; // "movie" | "tv"
+  const type = r.media_type;
   const dateStr = type === "tv" ? r.first_air_date : r.release_date;
   return {
-    id: r.id,
-    type,
+    id: r.id, type,
     title: type === "tv" ? r.name : r.title,
     year: parseInt(dateStr?.split("-")[0]) || 0,
     rating: Math.round(r.vote_average * 10) / 10,
     poster: r.poster_path || null,
     backdrop: r.backdrop_path || null,
     overview: r.overview || "",
-    genres: [],          // genre_ids come as numbers; we skip mapping for simplicity
-    seasons: undefined,  // not available from search; modal falls back to manual inputs
-    episodesPerSeason: undefined,
+    genres: [], seasons: undefined, episodesPerSeason: undefined,
   };
 }
 
@@ -201,36 +104,27 @@ function PosterCard({ item, onClick }) {
     >
       <div style={{
         aspectRatio: "2/3", borderRadius: 10, overflow: "hidden",
-        background: "#1a1a2a", position: "relative",
+        background: C.bgCard, position: "relative",
         border: "1px solid rgba(255,255,255,0.06)",
       }}>
         {!imgErr && item.poster ? (
-          <img
-            src={`${TMDB_W}${item.poster}`}
-            alt={item.title}
-            onError={() => setImgErr(true)}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-          />
+          <img src={`${TMDB_W}${item.poster}`} alt={item.title} onError={() => setImgErr(true)}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         ) : (
           <div style={{
             width: "100%", height: "100%", display: "flex", alignItems: "center",
-            justifyContent: "center", background: "linear-gradient(145deg,#1a1a2e,#0d0d1a)",
-            fontSize: 40, color: "rgba(245,200,66,0.4)", fontFamily: "'Cinzel Display', serif",
-          }}>
-            {item.title[0]}
-          </div>
+            justifyContent: "center", background: `linear-gradient(145deg,${C.bgCard},${C.bgModal})`,
+            fontSize: 40, color: `${C.accent}66`, fontFamily: "'Cinzel Display', serif",
+          }}>{item.title[0]}</div>
         )}
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(to top, rgba(8,8,16,0.9) 0%, transparent 55%)",
-        }} />
+        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to top, rgba(8,15,8,0.9) 0%, transparent 55%)` }} />
         <div style={{ position: "absolute", bottom: 10, left: 10 }}>
-          <span style={{ color: "#f5c842", fontSize: 10, fontWeight: 700 }}>★ {item.rating}</span>
+          <span style={{ color: C.accent, fontSize: 10, fontWeight: 700 }}>★ {item.rating}</span>
         </div>
         {item.type === "tv" && (
           <div style={{
             position: "absolute", top: 8, right: 8,
-            background: "rgba(245,200,66,0.9)", color: "#0a0a10",
+            background: `${C.accent}e6`, color: C.bg,
             fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 3, letterSpacing: "0.1em",
           }}>TV</div>
         )}
@@ -252,27 +146,24 @@ function EpisodeModal({ item, onClose }) {
   const eps = item.episodesPerSeason?.[season - 1] || null;
 
   const vidSrc = item.type === "tv"
-    ? `https://www.vidking.net/embed/tv/${item.id}/${season}/${episode}?color=f5c842&autoPlay=true&nextEpisode=true&episodeSelector=true`
-    : `https://www.vidking.net/embed/movie/${item.id}?color=f5c842&autoPlay=true`;
+    ? `https://www.vidking.net/embed/tv/${item.id}/${season}/${episode}?color=729C65&autoPlay=true&nextEpisode=true&episodeSelector=true`
+    : `https://www.vidking.net/embed/movie/${item.id}?color=729C65&autoPlay=true`;
 
   const goFullscreen = () => iframeRef.current?.requestFullscreen();
+
   const goPiP = async () => {
-  // Chrome 116+: Document Picture-in-Picture
-  if ("documentPictureInPicture" in window) {
-    const pipWin = await window.documentPictureInPicture.requestWindow({
-      width: 640, height: 390,
-    });
-    pipWin.document.body.style.cssText = "margin:0;background:#000;overflow:hidden";
-    const pipIframe = pipWin.document.createElement("iframe");
-    pipIframe.src = vidSrc;
-    pipIframe.style.cssText = "width:100%;height:100%;border:none;display:block";
-    pipIframe.allow = "autoplay; fullscreen";
-    pipWin.document.body.appendChild(pipIframe);
-  } else {
-    // Fallback for Firefox/Safari: plain popup
-    window.open(vidSrc, "cinemax-pip", "width=640,height=390,toolbar=no,menubar=no,resizable=yes");
-  }
-};
+    if ("documentPictureInPicture" in window) {
+      const pipWin = await window.documentPictureInPicture.requestWindow({ width: 640, height: 390 });
+      pipWin.document.body.style.cssText = "margin:0;background:#000;overflow:hidden";
+      const f = pipWin.document.createElement("iframe");
+      f.src = vidSrc;
+      f.style.cssText = "width:100%;height:100%;border:none;display:block";
+      f.allow = "autoplay; fullscreen";
+      pipWin.document.body.appendChild(f);
+    } else {
+      window.open(vidSrc, "cinemax-pip", "width=640,height=390,toolbar=no,menubar=no,resizable=yes");
+    }
+  };
 
   const inputStyle = {
     background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
@@ -280,183 +171,129 @@ function EpisodeModal({ item, onClose }) {
     width: 80, outline: "none", textAlign: "center",
   };
 
+  const btnAccent = {
+    background: C.accent, color: C.bg,
+    border: "none", padding: "10px 24px", borderRadius: 6,
+    fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em",
+  };
+
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, zIndex: 9000,
-        background: "rgba(0,0,0,0.88)", backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "20px",
-      }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: 1000, background: "#0d0d1a",
-          borderRadius: 14, overflow: "hidden",
-          border: "1px solid rgba(245,200,66,0.18)",
-          boxShadow: "0 40px 80px rgba(0,0,0,0.8)",
-        }}
-      >
-        {/* Header */}
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, zIndex: 9000,
+      background: "rgba(0,0,0,0.88)", backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: "20px",
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: "100%", maxWidth: 1000, background: C.bgModal,
+        borderRadius: 14, overflow: "hidden",
+        border: `1px solid ${C.border}`,
+        boxShadow: "0 40px 80px rgba(0,0,0,0.8)",
+      }}>
+
+        {/* ── Header ── */}
         <div style={{
           display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-          padding: "20px 24px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)",
+          padding: "20px 24px 16px", borderBottom: `1px solid rgba(255,255,255,0.06)`,
         }}>
           <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
             {item.poster && (
-              <img
-                src={`${TMDB_W}${item.poster}`}
-                alt={item.title}
+              <img src={`${TMDB_W}${item.poster}`} alt={item.title}
                 onError={e => e.target.style.display = "none"}
-                style={{ width: 52, height: 78, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}
-              />
+                style={{ width: 52, height: 78, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
             )}
             <div>
-              <h2 style={{
-                margin: "0 0 4px", fontSize: 22,
-                fontFamily: "'Cinzel Display', 'Cinzel', serif",
-                color: "#f0ead0", letterSpacing: "0.04em",
-              }}>{item.title}</h2>
+              <h2 style={{ margin: "0 0 4px", fontSize: 22, fontFamily: "'Cinzel Display','Cinzel',serif", color: "#f0ead0", letterSpacing: "0.04em" }}>{item.title}</h2>
               <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                <span style={{ color: "#f5c842", fontSize: 13, fontWeight: 600 }}>★ {item.rating}</span>
+                <span style={{ color: C.accent, fontSize: 13, fontWeight: 600 }}>★ {item.rating}</span>
                 <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>{item.year}</span>
-                {item.genres.length > 0 && (
-                  <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>{item.genres.join(" · ")}</span>
-                )}
+                {item.genres.length > 0 && <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>{item.genres.join(" · ")}</span>}
               </div>
-              <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: "8px 0 0", lineHeight: 1.6, maxWidth: 480 }}>
-                {item.overview}
-              </p>
+              <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: "8px 0 0", lineHeight: 1.6, maxWidth: 480 }}>{item.overview}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-              color: "rgba(255,255,255,0.7)", width: 34, height: 34, borderRadius: "50%",
-              cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >✕</button>
+          <button onClick={onClose} style={{
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+            color: "rgba(255,255,255,0.7)", width: 34, height: 34, borderRadius: "50%",
+            cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>✕</button>
         </div>
 
-        {/* TV episode selector */}
+        {/* ── TV episode selector ── */}
         {item.type === "tv" && !playing && (
-          <div style={{ padding: "20px 24px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ padding: "20px 24px", borderBottom: `1px solid rgba(255,255,255,0.06)` }}>
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
-
-              {/* Known seasons (CATALOG items) — show buttons + dropdown */}
               {maxSeason ? (
                 <>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <label style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Season</label>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {Array.from({ length: maxSeason }, (_, i) => i + 1).map(s => (
-                        <button
-                          key={s}
-                          onClick={() => { setSeason(s); setEpisode(1); }}
-                          style={{
-                            width: 34, height: 34, borderRadius: 6,
-                            background: season === s ? "#f5c842" : "rgba(255,255,255,0.06)",
-                            border: "1px solid " + (season === s ? "#f5c842" : "rgba(255,255,255,0.1)"),
-                            color: season === s ? "#0a0a10" : "rgba(255,255,255,0.6)",
-                            cursor: "pointer", fontSize: 13, fontWeight: season === s ? 700 : 400,
-                          }}
-                        >{s}</button>
+                        <button key={s} onClick={() => { setSeason(s); setEpisode(1); }} style={{
+                          width: 34, height: 34, borderRadius: 6,
+                          background: season === s ? C.accent : "rgba(255,255,255,0.06)",
+                          border: `1px solid ${season === s ? C.accent : "rgba(255,255,255,0.1)"}`,
+                          color: season === s ? C.bg : "rgba(255,255,255,0.6)",
+                          cursor: "pointer", fontSize: 13, fontWeight: season === s ? 700 : 400,
+                        }}>{s}</button>
                       ))}
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <label style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Episode</label>
-                    <select
-                      value={episode}
-                      onChange={e => setEpisode(Number(e.target.value))}
-                      style={{
-                        background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
-                        color: "#fff", padding: "8px 12px", borderRadius: 6, fontSize: 13,
-                        cursor: "pointer", appearance: "none", minWidth: 140,
-                      }}
-                    >
+                    <select value={episode} onChange={e => setEpisode(Number(e.target.value))} style={{
+                      background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
+                      color: "#fff", padding: "8px 12px", borderRadius: 6, fontSize: 13,
+                      cursor: "pointer", appearance: "none", minWidth: 140,
+                    }}>
                       {Array.from({ length: eps || 20 }, (_, i) => i + 1).map(ep => (
-                        <option key={ep} value={ep} style={{ background: "#1a1a2a" }}>Episode {ep}</option>
+                        <option key={ep} value={ep} style={{ background: C.bgCard }}>Episode {ep}</option>
                       ))}
                     </select>
                   </div>
                 </>
               ) : (
-                // Unknown seasons (came from TMDB live search) — plain number inputs
                 <>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <label style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Season</label>
-                    <input
-                      type="number" min="1" value={season}
-                      onChange={e => setSeason(Math.max(1, Number(e.target.value)))}
-                      style={inputStyle}
-                    />
+                    <input type="number" min="1" value={season} onChange={e => setSeason(Math.max(1, Number(e.target.value)))} style={inputStyle} />
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <label style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Episode</label>
-                    <input
-                      type="number" min="1" value={episode}
-                      onChange={e => setEpisode(Math.max(1, Number(e.target.value)))}
-                      style={inputStyle}
-                    />
+                    <input type="number" min="1" value={episode} onChange={e => setEpisode(Math.max(1, Number(e.target.value)))} style={inputStyle} />
                   </div>
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
-                    (type any season / episode number)
-                  </span>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>(type any season / episode number)</span>
                 </>
               )}
-
-              <button
-                onClick={() => setPlaying(true)}
-                style={{
-                  background: "#f5c842", color: "#0a0a10",
-                  border: "none", padding: "10px 24px", borderRadius: 6,
-                  fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em",
-                }}
-              >▶ Play</button>
+              <button onClick={() => setPlaying(true)} style={btnAccent}>▶ Play</button>
             </div>
           </div>
         )}
 
-        {/* Player */}
+        {/* ── Player ── */}
         {(item.type === "movie" || playing) && (
           <div style={{ background: "#000" }}>
-            <iframe
-              ref={iframeRef}
-              src={vidSrc}
-              width="100%" height={500}
-              frameBorder="0"
-              allowFullScreen
-              allow="autoplay; fullscreen"
-              style={{ display: "block" }}
-            />
+            {/* Hint — correctly placed above the iframe */}
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.22)", textAlign: "center", padding: "8px 0 4px", margin: 0 }}>
+              If playback fails, try "Show All Servers" inside the player or come back later.
+            </p>
+            <iframe ref={iframeRef} src={vidSrc} width="100%" height={500}
+              frameBorder="0" allowFullScreen allow="autoplay; fullscreen"
+              style={{ display: "block" }} />
             <div style={{
               display: "flex", justifyContent: "flex-end", gap: 8,
-              padding: "8px 12px", background: "#0a0a14",
+              padding: "8px 12px", background: C.bgBar,
               borderTop: "1px solid rgba(255,255,255,0.05)",
             }}>
-              <button
-                onClick={goPiP}
-                title="Picture in Picture"
-                style={{
-                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
-                  color: "rgba(255,255,255,0.6)", padding: "6px 14px", borderRadius: 6,
-                  cursor: "pointer", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em",
-                }}
-              >Picture in Picture</button>
-              <button
-                onClick={goFullscreen}
-                title="Fullscreen (no ad)"
-                style={{
-                  background: "rgba(245,200,66,0.1)", border: "1px solid rgba(245,200,66,0.3)",
-                  color: "#f5c842", padding: "6px 14px", borderRadius: 6,
-                  cursor: "pointer", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em",
-                }}
-              >⛶ Fullscreen</button>
+              <button onClick={goPiP} style={{
+                background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+                color: "rgba(255,255,255,0.6)", padding: "6px 14px", borderRadius: 6,
+                cursor: "pointer", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em",
+              }}>⧉ Picture in Picture</button>
+              <button onClick={goFullscreen} style={{
+                background: `${C.accent}1a`, border: `1px solid ${C.borderStrong}`,
+                color: C.accent, padding: "6px 14px", borderRadius: 6,
+                cursor: "pointer", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em",
+              }}>⛶ Fullscreen</button>
             </div>
           </div>
         )}
@@ -467,40 +304,25 @@ function EpisodeModal({ item, onClose }) {
 
 export default function App() {
   const [selected, setSelected] = useState(null);
-  const [search, setSearch] = useState("");
-  const [genre, setGenre] = useState("All");
-  const [tab, setTab] = useState("all");
+  const [search, setSearch]     = useState("");
+  const [genre, setGenre]       = useState("All");
+  const [tab, setTab]           = useState("all");
   const [featuredIdx, setFeaturedIdx] = useState(0);
-
-  // ── TMDB live search state ──────────────────────────────────────────────────
   const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSearching, setIsSearching]     = useState(false);
   const isLiveSearch = search.length >= 2;
 
   useEffect(() => {
-    if (!isLiveSearch) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
+    if (!isLiveSearch) { setSearchResults([]); setIsSearching(false); return; }
     setIsSearching(true);
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_KEY}&query=${encodeURIComponent(search)}&include_adult=false`
-        );
+        const res  = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${TMDB_KEY}&query=${encodeURIComponent(search)}&include_adult=false`);
         const data = await res.json();
-        const results = (data.results || [])
-          .map(normalizeTMDB)
-          .filter(Boolean)
-          .filter(r => tab === "all" || r.type === tab); // respect tab filter even in live search
-        setSearchResults(results);
-      } catch (err) {
-        console.error("TMDB search failed:", err);
-        setSearchResults([]);
-      }
+        setSearchResults((data.results || []).map(normalizeTMDB).filter(Boolean).filter(r => tab === "all" || r.type === tab));
+      } catch { setSearchResults([]); }
       setIsSearching(false);
-    }, 400); // debounce 400ms
+    }, 400);
     return () => clearTimeout(timer);
   }, [search, tab]);
 
@@ -509,51 +331,56 @@ export default function App() {
     link.rel = "stylesheet";
     link.href = "https://fonts.googleapis.com/css2?family=Cinzel+Display&family=Cinzel:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap";
     document.head.appendChild(link);
-    document.body.style.margin = "0";
-    document.body.style.background = "#080810";
   }, []);
 
-  const featured = CATALOG[featuredIdx];
-
-  // When live searching, bypass CATALOG filtering entirely
+  const featured       = CATALOG[featuredIdx];
   const catalogFiltered = CATALOG.filter(item => {
     const matchSearch = item.title.toLowerCase().includes(search.toLowerCase());
-    const matchGenre = genre === "All" || item.genres.includes(genre);
-    const matchTab = tab === "all" || item.type === tab;
+    const matchGenre  = genre === "All" || item.genres.includes(genre);
+    const matchTab    = tab === "all" || item.type === tab;
     return matchSearch && matchGenre && matchTab;
   });
 
   const displayItems = isLiveSearch ? searchResults : catalogFiltered;
-  const movies = displayItems.filter(x => x.type === "movie");
-  const shows  = displayItems.filter(x => x.type === "tv");
+  const movies    = displayItems.filter(x => x.type === "movie");
+  const shows     = displayItems.filter(x => x.type === "tv");
   const showMovies = tab === "all" || tab === "movie";
   const showTV     = tab === "all" || tab === "tv";
 
-  return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif", background: "#080810", minHeight: "100vh", color: "#fff", overflowX: "hidden" }}>
+  const sectionHeader = (label, count) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22 }}>
+      <h2 style={{ fontFamily: "'Cinzel',serif", fontSize: 15, margin: 0, color: C.accent, letterSpacing: "0.18em", textTransform: "uppercase" }}>{label}</h2>
+      <div style={{ flex: 1, height: 1, background: `${C.accent}26` }} />
+      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>{count} titles</span>
+    </div>
+  );
 
-      {/* HERO */}
+  return (
+    <div style={{ fontFamily: "'DM Sans',sans-serif", background: C.bg, minHeight: "100vh", color: "#fff", overflowX: "hidden" }}>
+
+      {/* ── HERO ── */}
       <div style={{ position: "relative", height: 560, overflow: "hidden" }}>
         <div style={{
           position: "absolute", inset: 0,
           backgroundImage: `url(${TMDB_BG}${featured.backdrop})`,
-          backgroundSize: "cover", backgroundPosition: "center top",
-          filter: "brightness(0.5)",
+          backgroundSize: "cover", backgroundPosition: "center top", filter: "brightness(0.45)",
         }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(8,8,16,0.98) 0%, rgba(8,8,16,0.7) 50%, rgba(8,8,16,0.2) 100%)" }} />
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 160, background: "linear-gradient(to top, #080810, transparent)" }} />
+        {/* left-to-right fade with green tint */}
+        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg, rgba(8,15,8,0.97) 0%, rgba(8,15,8,0.65) 50%, rgba(8,15,8,0.15) 100%)` }} />
+        {/* bottom fade */}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 180, background: `linear-gradient(to top, ${C.bg}, transparent)` }} />
 
         {/* NAV */}
         <nav style={{ position: "relative", padding: "28px 52px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-            <span style={{ fontFamily: "'Cinzel Display', serif", fontSize: 26, color: "#f5c842", letterSpacing: "0.22em" }}>CINEMAX</span>
-            <span style={{ fontSize: 10, color: "rgba(245,200,66,0.5)", letterSpacing: "0.3em" }}>STREAMING</span>
+            <span style={{ fontFamily: "'Cinzel Display',serif", fontSize: 26, color: C.accent, letterSpacing: "0.22em" }}>Zekepeke movies</span>
+            <span style={{ fontSize: 10, color: `${C.accent}80`, letterSpacing: "0.3em" }}>(the best movies)</span>
           </div>
           <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.06)", borderRadius: 8, padding: 4 }}>
-            {[["all", "All"], ["movie", "Movies"], ["tv", "TV Shows"]].map(([val, label]) => (
+            {[["all","All"],["movie","Movies"],["tv","TV Shows"]].map(([val,label]) => (
               <button key={val} onClick={() => setTab(val)} style={{
-                background: tab === val ? "#f5c842" : "transparent", border: "none",
-                color: tab === val ? "#0a0a10" : "rgba(255,255,255,0.55)",
+                background: tab === val ? C.accent : "transparent", border: "none",
+                color: tab === val ? C.bg : "rgba(255,255,255,0.55)",
                 padding: "8px 20px", borderRadius: 6, cursor: "pointer",
                 fontSize: 13, fontWeight: tab === val ? 600 : 400, transition: "all 0.15s",
               }}>{label}</button>
@@ -563,10 +390,10 @@ export default function App() {
 
         {/* HERO CONTENT */}
         <div style={{ position: "relative", padding: "20px 52px 0" }}>
-          <div style={{ fontSize: 10, letterSpacing: "0.35em", color: "#f5c842", textTransform: "uppercase", marginBottom: 14, fontWeight: 500 }}>✦ Featured Tonight</div>
-          <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: 52, margin: "0 0 14px", lineHeight: 1.05, maxWidth: 520, color: "#f5f0e0", letterSpacing: "0.02em", fontWeight: 600 }}>{featured.title}</h1>
+          <div style={{ fontSize: 10, letterSpacing: "0.35em", color: C.accent, textTransform: "uppercase", marginBottom: 14, fontWeight: 500 }}>My favorites</div>
+          <h1 style={{ fontFamily: "'Cinzel',serif", fontSize: 52, margin: "0 0 14px", lineHeight: 1.05, maxWidth: 520, color: "#f5f0e0", letterSpacing: "0.02em", fontWeight: 600 }}>{featured.title}</h1>
           <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 16 }}>
-            <span style={{ color: "#f5c842", fontWeight: 700, fontSize: 14 }}>★ {featured.rating}</span>
+            <span style={{ color: C.accent, fontWeight: 700, fontSize: 14 }}>★ {featured.rating}</span>
             <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>{featured.year}</span>
             <span style={{ color: "rgba(255,255,255,0.2)" }}>·</span>
             {featured.genres.map(g => (
@@ -577,15 +404,15 @@ export default function App() {
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <button
               onClick={() => setSelected(featured)}
-              style={{ background: "#f5c842", color: "#080810", border: "none", padding: "13px 32px", borderRadius: 7, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: "0.08em", boxShadow: "0 4px 20px rgba(245,200,66,0.35)" }}
-              onMouseEnter={e => { e.target.style.transform = "translateY(-1px)"; e.target.style.boxShadow = "0 8px 28px rgba(245,200,66,0.45)"; }}
-              onMouseLeave={e => { e.target.style.transform = "translateY(0)"; e.target.style.boxShadow = "0 4px 20px rgba(245,200,66,0.35)"; }}
+              style={{ background: C.accent, color: C.bg, border: "none", padding: "13px 32px", borderRadius: 7, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: "0.08em", boxShadow: `0 4px 20px ${C.accent}55` }}
+              onMouseEnter={e => { e.target.style.background = C.accentDark; e.target.style.boxShadow = `0 8px 28px ${C.accent}77`; }}
+              onMouseLeave={e => { e.target.style.background = C.accent; e.target.style.boxShadow = `0 4px 20px ${C.accent}55`; }}
             >▶ Watch Now</button>
             <div style={{ display: "flex", gap: 6 }}>
-              {[0, 1, 2, 3, 4].map(i => (
+              {[0,1,2,3,4].map(i => (
                 <button key={i} onClick={() => setFeaturedIdx(i)} style={{
                   width: i === featuredIdx ? 24 : 7, height: 7, borderRadius: 4, border: "none",
-                  background: i === featuredIdx ? "#f5c842" : "rgba(255,255,255,0.25)",
+                  background: i === featuredIdx ? C.accent : "rgba(255,255,255,0.25)",
                   cursor: "pointer", padding: 0, transition: "all 0.3s",
                 }} />
               ))}
@@ -594,7 +421,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* SEARCH + FILTERS */}
+      {/* ── SEARCH + FILTERS ── */}
       <div style={{ padding: "36px 52px 0" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 20 }}>
           <div style={{ position: "relative" }}>
@@ -602,34 +429,26 @@ export default function App() {
               {isSearching ? "⏳" : "🔍"}
             </span>
             <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+              value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search any movie or TV show…"
-              style={{
-                background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-                color: "#fff", padding: "11px 16px 11px 38px", borderRadius: 8,
-                fontSize: 14, width: 300, outline: "none",
-              }}
-              onFocus={e => e.target.style.borderColor = "rgba(245,200,66,0.5)"}
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", padding: "11px 16px 11px 38px", borderRadius: 8, fontSize: 14, width: 300, outline: "none" }}
+              onFocus={e => e.target.style.borderColor = C.borderStrong}
               onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
             />
           </div>
-          {/* Live search badge */}
           {isLiveSearch && (
-            <span style={{ fontSize: 12, color: "rgba(245,200,66,0.7)", letterSpacing: "0.08em" }}>
+            <span style={{ fontSize: 12, color: `${C.accent}b3`, letterSpacing: "0.08em" }}>
               {isSearching ? "Searching TMDB…" : `${displayItems.length} results for "${search}"`}
             </span>
           )}
         </div>
-
-        {/* Genre filter — hidden during live search since TMDB results have no genre names */}
         {!isLiveSearch && (
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
             {ALL_GENRES.map(g => (
               <button key={g} onClick={() => setGenre(g)} style={{
-                background: genre === g ? "#f5c842" : "rgba(255,255,255,0.05)",
-                border: "1px solid " + (genre === g ? "#f5c842" : "rgba(255,255,255,0.1)"),
-                color: genre === g ? "#0a0a10" : "rgba(255,255,255,0.55)",
+                background: genre === g ? C.accent : "rgba(255,255,255,0.05)",
+                border: `1px solid ${genre === g ? C.accent : "rgba(255,255,255,0.1)"}`,
+                color: genre === g ? C.bg : "rgba(255,255,255,0.55)",
                 padding: "6px 15px", borderRadius: 20, cursor: "pointer",
                 fontSize: 12, fontWeight: genre === g ? 600 : 400, transition: "all 0.15s",
               }}>{g}</button>
@@ -638,30 +457,20 @@ export default function App() {
         )}
       </div>
 
-      {/* MOVIES */}
+      {/* ── MOVIES ── */}
       {showMovies && movies.length > 0 && (
         <section style={{ padding: "36px 52px 0" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22 }}>
-            <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: 15, margin: 0, color: "#f5c842", letterSpacing: "0.18em", textTransform: "uppercase" }}>
-              {isLiveSearch ? "Movies" : "Movies"}
-            </h2>
-            <div style={{ flex: 1, height: 1, background: "rgba(245,200,66,0.15)" }} />
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>{movies.length} titles</span>
-          </div>
+          {sectionHeader("Movies", movies.length)}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))", gap: "24px 18px" }}>
             {movies.map(item => <PosterCard key={item.id} item={item} onClick={setSelected} />)}
           </div>
         </section>
       )}
 
-      {/* TV SHOWS */}
+      {/* ── TV SHOWS ── */}
       {showTV && shows.length > 0 && (
         <section style={{ padding: "40px 52px 60px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22 }}>
-            <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: 15, margin: 0, color: "#f5c842", letterSpacing: "0.18em", textTransform: "uppercase" }}>TV Series</h2>
-            <div style={{ flex: 1, height: 1, background: "rgba(245,200,66,0.15)" }} />
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>{shows.length} titles</span>
-          </div>
+          {sectionHeader("TV Series", shows.length)}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))", gap: "24px 18px" }}>
             {shows.map(item => <PosterCard key={item.id} item={item} onClick={setSelected} />)}
           </div>
@@ -671,16 +480,16 @@ export default function App() {
       {!isSearching && displayItems.length === 0 && (
         <div style={{ textAlign: "center", padding: "80px 0", color: "rgba(255,255,255,0.25)" }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>🎬</div>
-          <div style={{ fontFamily: "'Cinzel', serif", letterSpacing: "0.1em" }}>
+          <div style={{ fontFamily: "'Cinzel',serif", letterSpacing: "0.1em" }}>
             {isLiveSearch ? `No results for "${search}"` : "No titles found"}
           </div>
         </div>
       )}
 
-      {/* FOOTER */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "24px 52px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontFamily: "'Cinzel Display', serif", color: "rgba(245,200,66,0.4)", fontSize: 14, letterSpacing: "0.2em" }}>CINEMAX</span>
-        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", letterSpacing: "0.06em" }}>Powered by Vidking Player · Built for hackathon demo</span>
+      {/* ── FOOTER ── */}
+      <div style={{ borderTop: `1px solid rgba(255,255,255,0.06)`, padding: "24px 52px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontFamily: "'Cinzel Display',serif", color: `${C.accent}66`, fontSize: 14, letterSpacing: "0.2em" }}>Zekepeke movies</span>
+        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", letterSpacing: "0.06em" }}>Watch movies for free</span>
       </div>
 
       {selected && <EpisodeModal item={selected} onClose={() => setSelected(null)} />}

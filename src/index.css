@@ -1,2 +1,29 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #080810; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent:        #729C65;
+  --accent-dark:   #4E763B;
+  --accent-muted:  #637462;
+  --accent-dim:    #6D835C;
+  --deep:          #193C0D;
+
+  --bg:            #080f08;
+  --bg-modal:      #0b140b;
+  --bg-card:       #121a12;
+  --bg-bar:        #080e08;
+
+  --border-accent: rgba(114,156,101,0.18);
+  --border-strong: rgba(114,156,101,0.35);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* native number input arrows — hide for cleaner look */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+input[type=number] { -moz-appearance: textfield; }
