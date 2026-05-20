@@ -9,7 +9,7 @@ const CATALOG = [
   genres: ["Action", "Adventure", "Sci-Fi"],
   poster: "/kOVEVeg59E0wsnXmF9nrh6OmWII.jpg",
   backdrop: "/5Iw7zQTHVRBOi772Yi3wLkcvDGo.jpg",
-  overview: "Rey develops her newly discovered abilities with the guidance of Luke Skywalker, who is unsettled by the strength of her powers.",
+  overview: "I really want to watch this movie",
   },
   {
     id: 155, type: "movie", title: "The Dark Knight", year: 2008, rating: 9.0,
@@ -231,6 +231,7 @@ function PosterCard({ item, onClick, featured }) {
 }
 
 function EpisodeModal({ item, onClose }) {
+  const iframeRef = useRef(null);
   const maxSeason = item.seasons || 1;
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
@@ -240,6 +241,8 @@ function EpisodeModal({ item, onClose }) {
   const vidSrc = item.type === "tv"
     ? `https://www.vidking.net/embed/tv/${item.id}/${season}/${episode}?color=f5c842&autoPlay=true&nextEpisode=true&episodeSelector=true`
     : `https://www.vidking.net/embed/movie/${item.id}?color=f5c842&autoPlay=true`;
+
+  const goFullscreen = () => iframeRef.current?.requestFullscreen();
 
   return (
     <div
@@ -356,6 +359,7 @@ function EpisodeModal({ item, onClose }) {
         {(item.type === "movie" || playing) && (
           <div style={{ background: "#000" }}>
             <iframe
+              ref={iframeRef}          // ← add this ref
               src={vidSrc}
               width="100%" height={500}
               frameBorder="0"
@@ -363,11 +367,23 @@ function EpisodeModal({ item, onClose }) {
               allow="autoplay; fullscreen"
               style={{ display: "block" }}
             />
+            {/* Our own fullscreen button — bypasses Vidking's ad-triggering one */}
+            <div style={{
+              display: "flex", justifyContent: "flex-end",
+              padding: "8px 12px", background: "#0a0a14",
+              borderTop: "1px solid rgba(255,255,255,0.05)",
+            }}>
+              <button
+                onClick={goFullscreen}
+                title="Fullscreen (no ad)"
+                style={{
+                  background: "rgba(245,200,66,0.1)", border: "1px solid rgba(245,200,66,0.3)",
+                  color: "#f5c842", padding: "6px 14px", borderRadius: 6,
+                  cursor: "pointer", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em",
+                }}
+              >⛶ Fullscreen</button>
+            </div>
           </div>
-        )}
-
-        {item.type === "movie" && (
-          <div style={{ padding: "0" }} />
         )}
       </div>
     </div>
