@@ -256,6 +256,23 @@ function EpisodeModal({ item, onClose }) {
     : `https://www.vidking.net/embed/movie/${item.id}?color=f5c842&autoPlay=true`;
 
   const goFullscreen = () => iframeRef.current?.requestFullscreen();
+  const goPiP = async () => {
+  // Chrome 116+: Document Picture-in-Picture
+  if ("documentPictureInPicture" in window) {
+    const pipWin = await window.documentPictureInPicture.requestWindow({
+      width: 640, height: 390,
+    });
+    pipWin.document.body.style.cssText = "margin:0;background:#000;overflow:hidden";
+    const pipIframe = pipWin.document.createElement("iframe");
+    pipIframe.src = vidSrc;
+    pipIframe.style.cssText = "width:100%;height:100%;border:none;display:block";
+    pipIframe.allow = "autoplay; fullscreen";
+    pipWin.document.body.appendChild(pipIframe);
+  } else {
+    // Fallback for Firefox/Safari: plain popup
+    window.open(vidSrc, "cinemax-pip", "width=640,height=390,toolbar=no,menubar=no,resizable=yes");
+  }
+};
 
   const inputStyle = {
     background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
@@ -418,12 +435,22 @@ function EpisodeModal({ item, onClose }) {
               style={{ display: "block" }}
             />
             <div style={{
-              display: "flex", justifyContent: "flex-end",
+              display: "flex", justifyContent: "flex-end", gap: 8,
               padding: "8px 12px", background: "#0a0a14",
               borderTop: "1px solid rgba(255,255,255,0.05)",
             }}>
               <button
+                onClick={goPiP}
+                title="Picture in Picture"
+                style={{
+                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+                  color: "rgba(255,255,255,0.6)", padding: "6px 14px", borderRadius: 6,
+                  cursor: "pointer", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em",
+                }}
+              >Picture in Picture</button>
+              <button
                 onClick={goFullscreen}
+                title="Fullscreen (no ad)"
                 style={{
                   background: "rgba(245,200,66,0.1)", border: "1px solid rgba(245,200,66,0.3)",
                   color: "#f5c842", padding: "6px 14px", borderRadius: 6,
