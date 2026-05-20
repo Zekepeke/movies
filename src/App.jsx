@@ -5,6 +5,13 @@ const TMDB_BG = "https://image.tmdb.org/t/p/w1280";
 
 const CATALOG = [
   {
+  id: 181808, type: "movie", title: "Star Wars: The Last Jedi", year: 2017, rating: 7.0,
+  genres: ["Action", "Adventure", "Sci-Fi"],
+  poster: "/kOVEVeg59E0wsnXmF9nrh6OmWII.jpg",
+  backdrop: "/5Iw7zQTHVRBOi772Yi3wLkcvDGo.jpg",
+  overview: "Rey develops her newly discovered abilities with the guidance of Luke Skywalker, who is unsettled by the strength of her powers.",
+  },
+  {
     id: 155, type: "movie", title: "The Dark Knight", year: 2008, rating: 9.0,
     genres: ["Action", "Crime", "Drama"],
     poster: "/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
