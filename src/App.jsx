@@ -234,7 +234,7 @@ function EpisodeModal({ item, onClose }) {
   const episodes = seasonData?.episodes || null;
 
   const vidSrc = item.type === "tv"
-    ? `https://www.vidking.net/embed/tv/${item.id}/${season}/${episode}?color=729C65&autoPlay=true&nextEpisode=true&episodeSelector=true`
+    ? `https://www.vidking.net/embed/tv/${item.id}/${season}/${episode}?color=729C65&autoPlay=true&nextEpisode=true`
     : `https://www.vidking.net/embed/movie/${item.id}?color=729C65&autoPlay=true`;
 
   const currentEpName = episodes?.find(e => e.episode_number === episode)?.name;
