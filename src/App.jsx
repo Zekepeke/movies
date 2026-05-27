@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 
-const TMDB_W   = "https://image.tmdb.org/t/p/w500";
-const TMDB_BG  = "https://image.tmdb.org/t/p/w1280";
+const TMDB_W     = "https://image.tmdb.org/t/p/w500";
+const TMDB_BG    = "https://image.tmdb.org/t/p/w1280";
 const TMDB_STILL = "https://image.tmdb.org/t/p/w300";
-const TMDB_KEY = import.meta.env.VITE_TMDB_KEY;
+const TMDB_KEY   = import.meta.env.VITE_TMDB_KEY;
 
 const C = {
   accent:       "#729C65",
@@ -17,6 +17,17 @@ const C = {
   border:       "rgba(114,156,101,0.18)",
   borderStrong: "rgba(114,156,101,0.35)",
 };
+
+// ── Responsive hook ───────────────────────────────────────────────────────
+function useIsMobile() {
+  const [m, setM] = useState(typeof window !== "undefined" && window.innerWidth < 640);
+  useEffect(() => {
+    const onResize = () => setM(window.innerWidth < 640);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return m;
+}
 
 const CATALOG = [
   { id: 11, type: "movie", title: "Star Wars: Episode IV - A New Hope", year: 1977, rating: 8.6,
@@ -119,31 +130,28 @@ function PosterCard({ item, onClick }) {
   );
 }
 
-
-// Episode row — Netflix-style with still, title, runtime, overview
-function EpisodeRow({ ep, isActive, onClick }) {
+// ─── Episode row — responsive still + content ─────────────────────────────
+function EpisodeRow({ ep, isActive, onClick, isMobile }) {
   const [hover, setHover] = useState(false);
   return (
     <div onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        display: "flex", gap: 16, padding: 14, cursor: "pointer",
+        display: "flex", gap: isMobile ? 10 : 16, padding: isMobile ? 10 : 14, cursor: "pointer",
         background: isActive ? `${C.accent}1a` : (hover ? "rgba(255,255,255,0.03)" : "transparent"),
         borderRadius: 8, transition: "background 0.15s",
         alignItems: "flex-start",
         borderBottom: "1px solid rgba(255,255,255,0.04)",
       }}>
-      {/* Number */}
       <div style={{
-        fontSize: 28, fontWeight: 300, color: isActive ? C.accent : "rgba(255,255,255,0.4)",
-        minWidth: 32, textAlign: "center", lineHeight: 1, paddingTop: 4,
+        fontSize: isMobile ? 22 : 28, fontWeight: 300, color: isActive ? C.accent : "rgba(255,255,255,0.4)",
+        minWidth: isMobile ? 22 : 32, textAlign: "center", lineHeight: 1, paddingTop: 4,
         fontFamily: "'Cinzel', serif",
       }}>{ep.episode_number}</div>
 
-      {/* Still image */}
       <div style={{
-        width: 168, height: 95, flexShrink: 0, borderRadius: 6, overflow: "hidden",
+        width: isMobile ? 110 : 168, height: isMobile ? 62 : 95, flexShrink: 0, borderRadius: 6, overflow: "hidden",
         background: C.bgCard, position: "relative",
       }}>
         {ep.still_path ? (
@@ -155,28 +163,22 @@ function EpisodeRow({ ep, isActive, onClick }) {
             color: `${C.accent}44`, fontSize: 24,
           }}>▸</div>
         )}
-        {hover && (
-          <div style={{
-            position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: "50%", background: C.accent,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: C.bg, fontSize: 14,
-            }}>▶</div>
+        {hover && !isMobile && (
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", color: C.bg, fontSize: 14 }}>▶</div>
           </div>
         )}
       </div>
 
-      {/* Title / overview */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 6 }}>
-          <span style={{ fontSize: 15, fontWeight: 600, color: "#f0ead0" }}>{ep.name || `Episode ${ep.episode_number}`}</span>
-          {ep.runtime && <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", flexShrink: 0 }}>{ep.runtime}m</span>}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+          <span style={{ fontSize: isMobile ? 13 : 15, fontWeight: 600, color: "#f0ead0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {ep.name || `Episode ${ep.episode_number}`}
+          </span>
+          {ep.runtime && <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", flexShrink: 0 }}>{ep.runtime}m</span>}
         </div>
         <p style={{
-          fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.6, margin: 0,
+          fontSize: isMobile ? 11 : 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, margin: 0,
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
           overflow: "hidden",
         }}>{ep.overview || "No description available."}</p>
@@ -185,9 +187,9 @@ function EpisodeRow({ ep, isActive, onClick }) {
   );
 }
 
-
-// Modal — handles both Movies and TV. Two modes: browse + player (cinema).
+// ─── Modal — responsive: fullscreen on mobile, centered card on desktop ───
 function EpisodeModal({ item, onClose }) {
+  const isMobile = useIsMobile();
   const iframeRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [season, setSeason]   = useState(1);
@@ -196,26 +198,19 @@ function EpisodeModal({ item, onClose }) {
   const [seasonData, setSeasonData] = useState(null);
   const [seasonLoading, setSeasonLoading] = useState(false);
 
-  // Fetch full show metadata once for TV shows
   useEffect(() => {
     if (item.type !== "tv" || !TMDB_KEY) return;
     fetch(`https://api.themoviedb.org/3/tv/${item.id}?api_key=${TMDB_KEY}`)
-      .then(r => r.json())
-      .then(setShowData)
-      .catch(() => {});
+      .then(r => r.json()).then(setShowData).catch(() => {});
   }, [item.id, item.type]);
 
-  // Fetch episodes whenever season changes
   useEffect(() => {
     if (item.type !== "tv" || !TMDB_KEY) return;
     setSeasonLoading(true);
     fetch(`https://api.themoviedb.org/3/tv/${item.id}/season/${season}?api_key=${TMDB_KEY}`)
-      .then(r => r.json())
-      .then(d => { setSeasonData(d); setSeasonLoading(false); })
-      .catch(() => setSeasonLoading(false));
+      .then(r => r.json()).then(d => { setSeasonData(d); setSeasonLoading(false); }).catch(() => setSeasonLoading(false));
   }, [item.id, item.type, season]);
 
-  // Esc to close (or back to episodes if playing)
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") {
@@ -227,10 +222,8 @@ function EpisodeModal({ item, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [playing, item.type, onClose]);
 
-  // Available seasons, from TMDB if loaded, else CATALOG fallback, else [1]
   const seasons = showData?.seasons?.filter(s => s.season_number > 0)
     || (item.seasons ? Array.from({ length: item.seasons }, (_, i) => ({ season_number: i + 1, name: `Season ${i + 1}` })) : [{ season_number: 1, name: "Season 1" }]);
-
   const episodes = seasonData?.episodes || null;
 
   const vidSrc = item.type === "tv"
@@ -238,32 +231,18 @@ function EpisodeModal({ item, onClose }) {
     : `https://www.vidking.net/embed/movie/${item.id}?color=729C65&autoPlay=true`;
 
   const currentEpName = episodes?.find(e => e.episode_number === episode)?.name;
-
   const goFullscreen = () => iframeRef.current?.requestFullscreen();
 
-  // Better PiP: header bar + green theme + clean iframe fill
   const goPiP = async () => {
     const subtitle = item.type === "tv"
       ? `${item.title} — S${season} · E${episode}${currentEpName ? ` · ${currentEpName}` : ""}`
       : item.title;
-
     if ("documentPictureInPicture" in window) {
       const pipWin = await window.documentPictureInPicture.requestWindow({ width: 720, height: 460 });
-      pipWin.document.body.style.cssText = `
-        margin: 0; background: ${C.bg}; overflow: hidden;
-        display: flex; flex-direction: column; height: 100vh;
-        font-family: system-ui, -apple-system, 'DM Sans', sans-serif; color: #fff;
-      `;
+      pipWin.document.body.style.cssText = `margin:0;background:${C.bg};overflow:hidden;display:flex;flex-direction:column;height:100vh;font-family:system-ui,-apple-system,'DM Sans',sans-serif;color:#fff;`;
       const header = pipWin.document.createElement("div");
-      header.style.cssText = `
-        padding: 10px 14px; background: ${C.bgModal};
-        border-bottom: 1px solid ${C.border}; flex-shrink: 0;
-        display: flex; align-items: center; gap: 10px;
-      `;
-      header.innerHTML = `
-        <span style="color:${C.accent};font-weight:700;letter-spacing:0.18em;font-size:10px;">▸ NOW PLAYING</span>
-        <span style="color:rgba(255,255,255,0.85);font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${subtitle}</span>
-      `;
+      header.style.cssText = `padding:10px 14px;background:${C.bgModal};border-bottom:1px solid ${C.border};flex-shrink:0;display:flex;align-items:center;gap:10px;`;
+      header.innerHTML = `<span style="color:${C.accent};font-weight:700;letter-spacing:0.18em;font-size:10px;">▸ NOW PLAYING</span><span style="color:rgba(255,255,255,0.85);font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${subtitle}</span>`;
       pipWin.document.body.appendChild(header);
       const f = pipWin.document.createElement("iframe");
       f.src = vidSrc;
@@ -277,26 +256,29 @@ function EpisodeModal({ item, onClose }) {
 
   const selectEpisode = (n) => { setEpisode(n); setPlaying(true); };
 
-  // PLAYER MODE (cinema)
+  // ── PLAYER MODE ───────────────────────────────────────────────────────────
   if (playing) {
     return (
       <div onClick={onClose} style={{
         position: "fixed", inset: 0, zIndex: 9000,
         background: "rgba(0,0,0,0.95)", backdropFilter: "blur(8px)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: "16px",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: isMobile ? 0 : 16,
       }}>
         <div onClick={e => e.stopPropagation()} style={{
-          width: "min(1280px, 96vw)",
-          background: "#000", borderRadius: 12, overflow: "hidden",
-          border: `1px solid ${C.border}`,
-          boxShadow: "0 40px 100px rgba(0,0,0,0.9)",
+          width: isMobile ? "100%" : "min(1280px, 96vw)",
+          height: isMobile ? "100%" : "auto",
+          background: "#000",
+          borderRadius: isMobile ? 0 : 12, overflow: "hidden",
+          border: isMobile ? "none" : `1px solid ${C.border}`,
+          boxShadow: isMobile ? "none" : "0 40px 100px rgba(0,0,0,0.9)",
           display: "flex", flexDirection: "column",
         }}>
-
-          {/* Slim top bar */}
+          {/* Top bar */}
           <div style={{
-            display: "flex", alignItems: "center", gap: 16,
-            padding: "12px 18px", background: C.bgModal,
+            display: "flex", alignItems: "center", gap: isMobile ? 8 : 16,
+            padding: isMobile ? "10px 12px" : "12px 18px",
+            background: C.bgModal,
             borderBottom: `1px solid ${C.border}`,
           }}>
             {item.type === "tv" && (
@@ -304,19 +286,17 @@ function EpisodeModal({ item, onClose }) {
                 style={{
                   background: "transparent", border: "none",
                   color: "rgba(255,255,255,0.7)", cursor: "pointer",
-                  fontSize: 13, fontWeight: 500, padding: "6px 12px",
+                  fontSize: isMobile ? 12 : 13, fontWeight: 500,
+                  padding: isMobile ? "4px 8px" : "6px 12px",
                   borderRadius: 6, letterSpacing: "0.04em",
-                  display: "flex", alignItems: "center", gap: 6,
-                }}
-                onMouseEnter={e => { e.target.style.background = "rgba(255,255,255,0.06)"; e.target.style.color = C.accent; }}
-                onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = "rgba(255,255,255,0.7)"; }}
-              >← Episodes</button>
+                  display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
+                }}>← {isMobile ? "" : "Episodes"}</button>
             )}
-            <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 12, overflow: "hidden" }}>
-              <span style={{ fontFamily: "'Cinzel',serif", fontSize: 15, color: "#f0ead0", letterSpacing: "0.04em", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>{item.title}</span>
+            <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 8, overflow: "hidden" }}>
+              <span style={{ fontFamily: "'Cinzel',serif", fontSize: isMobile ? 13 : 15, color: "#f0ead0", letterSpacing: "0.04em", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>{item.title}</span>
               {item.type === "tv" && (
-                <span style={{ fontSize: 12, color: C.accent, fontWeight: 600, letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
-                  S{season} · E{episode}{currentEpName ? <span style={{ color: "rgba(255,255,255,0.55)", marginLeft: 8, fontWeight: 400 }}>{currentEpName}</span> : null}
+                <span style={{ fontSize: isMobile ? 11 : 12, color: C.accent, fontWeight: 600, letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                  S{season}·E{episode}
                 </span>
               )}
             </div>
@@ -324,36 +304,44 @@ function EpisodeModal({ item, onClose }) {
               background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
               color: "rgba(255,255,255,0.7)", width: 30, height: 30, borderRadius: "50%",
               cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
             }}>✕</button>
           </div>
 
-          {/* The player — big */}
-          <div style={{ background: "#000", position: "relative" }}>
+          {/* Player */}
+          <div style={{ background: "#000", flex: isMobile ? 1 : "none" }}>
             <iframe ref={iframeRef} src={vidSrc}
-              style={{ width: "100%", height: "min(70vh, 720px)", border: "none", display: "block" }}
+              style={{ width: "100%", height: isMobile ? "100%" : "min(70vh, 720px)", border: "none", display: "block" }}
               allowFullScreen allow="autoplay; fullscreen" />
           </div>
 
           {/* Bottom action bar */}
           <div style={{
             display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "10px 18px", background: C.bgBar,
-            borderTop: "1px solid rgba(255,255,255,0.05)",
+            padding: isMobile ? "8px 10px" : "10px 18px",
+            background: C.bgBar, borderTop: "1px solid rgba(255,255,255,0.05)",
+            gap: 8, flexWrap: "wrap",
           }}>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", letterSpacing: "0.15em" }}>
-              IF PLAYBACK FAILS, TRY "SHOW ALL SERVERS" INSIDE THE PLAYER
-            </span>
-            <div style={{ display: "flex", gap: 8 }}>
+            {!isMobile && (
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", letterSpacing: "0.15em" }}>
+                IF PLAYBACK FAILS, TRY "SHOW ALL SERVERS" INSIDE THE PLAYER
+              </span>
+            )}
+            <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
               <button onClick={goPiP} style={{
                 background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
-                color: "rgba(255,255,255,0.7)", padding: "7px 16px", borderRadius: 6,
-                cursor: "pointer", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em",
-              }}>⧉ Picture in Picture</button>
+                color: "rgba(255,255,255,0.7)",
+                padding: isMobile ? "6px 10px" : "7px 16px",
+                borderRadius: 6, cursor: "pointer",
+                fontSize: isMobile ? 11 : 12, fontWeight: 600, letterSpacing: "0.04em",
+              }}>⧉ {isMobile ? "PiP" : "Picture in Picture"}</button>
               <button onClick={goFullscreen} style={{
                 background: `${C.accent}1a`, border: `1px solid ${C.borderStrong}`,
-                color: C.accent, padding: "7px 16px", borderRadius: 6,
-                cursor: "pointer", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em",
-              }}>⛶ Fullscreen</button>
+                color: C.accent,
+                padding: isMobile ? "6px 10px" : "7px 16px",
+                borderRadius: 6, cursor: "pointer",
+                fontSize: isMobile ? 11 : 12, fontWeight: 600, letterSpacing: "0.04em",
+              }}>⛶ {isMobile ? "Full" : "Fullscreen"}</button>
             </div>
           </div>
         </div>
@@ -361,24 +349,32 @@ function EpisodeModal({ item, onClose }) {
     );
   }
 
-  // BROWSE MODE (info + episodes)
+  // ── BROWSE MODE ───────────────────────────────────────────────────────────
   return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 9000,
       background: "rgba(0,0,0,0.88)", backdropFilter: "blur(6px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: "20px",
+      display: "flex", alignItems: isMobile ? "flex-start" : "center",
+      justifyContent: "center",
+      padding: isMobile ? 0 : 20,
       overflowY: "auto",
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         width: "100%", maxWidth: 940, background: C.bgModal,
-        borderRadius: 14, overflow: "hidden",
-        border: `1px solid ${C.border}`,
-        boxShadow: "0 40px 80px rgba(0,0,0,0.8)",
-        margin: "auto",
+        borderRadius: isMobile ? 0 : 14,
+        overflow: "hidden",
+        border: isMobile ? "none" : `1px solid ${C.border}`,
+        boxShadow: isMobile ? "none" : "0 40px 80px rgba(0,0,0,0.8)",
+        minHeight: isMobile ? "100vh" : "auto",
+        margin: isMobile ? 0 : "auto",
       }}>
 
-        {/* ── Hero with backdrop image ── */}
-        <div style={{ position: "relative", padding: "32px 28px 24px", overflow: "hidden" }}>
+        {/* Hero with backdrop */}
+        <div style={{
+          position: "relative",
+          padding: isMobile ? "20px 16px 16px" : "32px 28px 24px",
+          overflow: "hidden",
+        }}>
           {item.backdrop && (
             <>
               <div style={{
@@ -390,100 +386,120 @@ function EpisodeModal({ item, onClose }) {
               <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, transparent 0%, ${C.bgModal} 95%)` }} />
             </>
           )}
-          <div style={{ position: "relative", display: "flex", gap: 22, alignItems: "flex-start" }}>
-            {item.poster && (
-              <img src={`${TMDB_W}${item.poster}`} alt={item.title}
-                onError={e => e.target.style.display = "none"}
-                style={{ width: 96, height: 144, objectFit: "cover", borderRadius: 8, flexShrink: 0, boxShadow: "0 8px 20px rgba(0,0,0,0.5)" }} />
-            )}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h2 style={{ margin: "0 0 8px", fontSize: 28, fontFamily: "'Cinzel Display','Cinzel',serif", color: "#f0ead0", letterSpacing: "0.03em", lineHeight: 1.15 }}>{item.title}</h2>
-              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
-                <span style={{ color: C.accent, fontSize: 14, fontWeight: 700 }}>★ {item.rating}</span>
-                <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>{item.year}</span>
+          <div style={{
+            position: "relative",
+            display: "flex",
+            gap: isMobile ? 14 : 22,
+            alignItems: "flex-start",
+            flexDirection: isMobile ? "column" : "row",
+          }}>
+            <div style={{ display: "flex", gap: 14, width: "100%" }}>
+              {item.poster && (
+                <img src={`${TMDB_W}${item.poster}`} alt={item.title}
+                  onError={e => e.target.style.display = "none"}
+                  style={{
+                    width: isMobile ? 80 : 96,
+                    height: isMobile ? 120 : 144,
+                    objectFit: "cover", borderRadius: 8, flexShrink: 0,
+                    boxShadow: "0 8px 20px rgba(0,0,0,0.5)",
+                  }} />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h2 style={{
+                  margin: "0 0 8px",
+                  fontSize: isMobile ? 22 : 28,
+                  fontFamily: "'Cinzel Display','Cinzel',serif",
+                  color: "#f0ead0", letterSpacing: "0.03em",
+                  lineHeight: 1.15,
+                  wordBreak: "break-word",
+                }}>{item.title}</h2>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+                  <span style={{ color: C.accent, fontSize: 13, fontWeight: 700 }}>★ {item.rating}</span>
+                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>{item.year}</span>
+                </div>
                 {item.genres.length > 0 && (
-                  <>
-                    <span style={{ color: "rgba(255,255,255,0.2)" }}>·</span>
-                    <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>{item.genres.join(" · ")}</span>
-                  </>
+                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginBottom: 10 }}>
+                    {item.genres.join(" · ")}
+                  </div>
                 )}
               </div>
-              <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 13, margin: "0 0 18px", lineHeight: 1.7, maxWidth: 580 }}>{item.overview}</p>
+              {/* Close button always reachable */}
+              <button onClick={onClose} style={{
+                background: "rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.1)",
+                color: "rgba(255,255,255,0.8)", width: 32, height: 32, borderRadius: "50%",
+                cursor: "pointer", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0, position: "relative", zIndex: 1, marginLeft: "auto",
+              }}>✕</button>
+            </div>
 
-              {/* For movies: big play button */}
+            <div style={{ width: "100%" }}>
+              <p style={{
+                color: "rgba(255,255,255,0.7)",
+                fontSize: isMobile ? 12 : 13,
+                margin: "0 0 16px", lineHeight: 1.6,
+                maxWidth: 580,
+              }}>{item.overview}</p>
+
               {item.type === "movie" && (
                 <button onClick={() => setPlaying(true)} style={{
                   background: C.accent, color: C.bg, border: "none",
-                  padding: "12px 28px", borderRadius: 7,
+                  padding: isMobile ? "12px 24px" : "12px 28px",
+                  borderRadius: 7,
                   fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: "0.08em",
                   boxShadow: `0 4px 16px ${C.accent}55`,
-                }}
-                onMouseEnter={e => { e.target.style.background = C.accentDark; }}
-                onMouseLeave={e => { e.target.style.background = C.accent; }}
-                >▶ Watch Movie</button>
+                  width: isMobile ? "100%" : "auto",
+                }}>▶ Watch Movie</button>
               )}
             </div>
-            <button onClick={onClose} style={{
-              background: "rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.1)",
-              color: "rgba(255,255,255,0.8)", width: 34, height: 34, borderRadius: "50%",
-              cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0, position: "relative", zIndex: 1,
-            }}>✕</button>
           </div>
         </div>
 
-        {/* ── Episode browser (TV only) ── */}
+        {/* Episode browser */}
         {item.type === "tv" && (
-          <div style={{ padding: "0 8px 8px" }}>
-
-            {/* Section header + season selector */}
+          <div style={{ padding: isMobile ? "0 4px 8px" : "0 8px 8px" }}>
             <div style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "18px 20px 14px",
+              padding: isMobile ? "16px 12px 12px" : "18px 20px 14px",
+              gap: 12, flexWrap: "wrap",
             }}>
               <h3 style={{
-                margin: 0, fontFamily: "'Cinzel',serif", fontSize: 14,
+                margin: 0, fontFamily: "'Cinzel',serif",
+                fontSize: isMobile ? 13 : 14,
                 color: C.accent, letterSpacing: "0.22em", textTransform: "uppercase",
               }}>Episodes</h3>
-              <div style={{ position: "relative" }}>
-                <select value={season} onChange={e => { setSeason(Number(e.target.value)); setEpisode(1); }}
-                  style={{
-                    background: "rgba(255,255,255,0.06)",
-                    border: `1px solid ${C.border}`,
-                    color: "#fff", padding: "8px 32px 8px 16px",
-                    borderRadius: 6, fontSize: 13, fontWeight: 500,
-                    cursor: "pointer", appearance: "none", outline: "none",
-                    backgroundImage: `linear-gradient(45deg, transparent 50%, ${C.accent} 50%), linear-gradient(135deg, ${C.accent} 50%, transparent 50%)`,
-                    backgroundPosition: `calc(100% - 18px) center, calc(100% - 13px) center`,
-                    backgroundSize: `5px 5px, 5px 5px`,
-                    backgroundRepeat: "no-repeat",
-                  }}>
-                  {seasons.map(s => (
-                    <option key={s.season_number} value={s.season_number} style={{ background: C.bgCard }}>
-                      {s.name || `Season ${s.season_number}`}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select value={season} onChange={e => { setSeason(Number(e.target.value)); setEpisode(1); }}
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: `1px solid ${C.border}`,
+                  color: "#fff", padding: "8px 32px 8px 16px",
+                  borderRadius: 6, fontSize: 13, fontWeight: 500,
+                  cursor: "pointer", appearance: "none", outline: "none",
+                  backgroundImage: `linear-gradient(45deg, transparent 50%, ${C.accent} 50%), linear-gradient(135deg, ${C.accent} 50%, transparent 50%)`,
+                  backgroundPosition: `calc(100% - 18px) center, calc(100% - 13px) center`,
+                  backgroundSize: `5px 5px, 5px 5px`,
+                  backgroundRepeat: "no-repeat",
+                }}>
+                {seasons.map(s => (
+                  <option key={s.season_number} value={s.season_number} style={{ background: C.bgCard }}>
+                    {s.name || `Season ${s.season_number}`}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Episode list */}
-            <div style={{ maxHeight: 460, overflowY: "auto", padding: "0 12px 12px" }}>
+            <div style={{ maxHeight: isMobile ? "none" : 460, overflowY: isMobile ? "visible" : "auto", padding: isMobile ? "0 6px 16px" : "0 12px 12px" }}>
               {seasonLoading && (
                 <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.4)", fontSize: 13 }}>
                   Loading episodes…
                 </div>
               )}
-
               {!seasonLoading && episodes?.length > 0 && episodes.map(ep => (
-                <EpisodeRow key={ep.id} ep={ep}
+                <EpisodeRow key={ep.id} ep={ep} isMobile={isMobile}
                   isActive={ep.episode_number === episode}
                   onClick={() => selectEpisode(ep.episode_number)} />
               ))}
-
-              {/* Fallback when TMDB has no data: simple numeric grid */}
               {!seasonLoading && !episodes?.length && (
-                <div style={{ padding: "16px 16px 24px" }}>
+                <div style={{ padding: "16px" }}>
                   <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 14, letterSpacing: "0.06em" }}>
                     Pick an episode:
                   </div>
@@ -509,8 +525,11 @@ function EpisodeModal({ item, onClose }) {
   );
 }
 
+// ════════════════════════════════════════════════════════════════════════════
 // App
+// ════════════════════════════════════════════════════════════════════════════
 export default function App() {
+  const isMobile = useIsMobile();
   const [selected, setSelected] = useState(null);
   const [search, setSearch]     = useState("");
   const [genre, setGenre]       = useState("All");
@@ -555,6 +574,14 @@ export default function App() {
   const showMovies   = tab === "all" || tab === "movie";
   const showTV       = tab === "all" || tab === "tv";
 
+  // Layout tokens that change for mobile
+  const sidePad     = isMobile ? 16 : 52;
+  const heroPad     = `${isMobile ? 20 : 28}px ${sidePad}px 0`;
+  const navPad      = `${isMobile ? 18 : 28}px ${sidePad}px`;
+  const sectionPad  = `${isMobile ? 28 : 36}px ${sidePad}px 0`;
+  const lastSectionPad = `${isMobile ? 32 : 40}px ${sidePad}px ${isMobile ? 48 : 60}px`;
+  const gridMin     = isMobile ? 108 : 148;
+
   const sectionHeader = (label, count) => (
     <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22 }}>
       <h2 style={{ fontFamily: "'Cinzel',serif", fontSize: 15, margin: 0, color: C.accent, letterSpacing: "0.18em", textTransform: "uppercase" }}>{label}</h2>
@@ -565,50 +592,120 @@ export default function App() {
 
   return (
     <div style={{ fontFamily: "'DM Sans',sans-serif", background: C.bg, minHeight: "100vh", color: "#fff", overflowX: "hidden" }}>
+
       {/* HERO */}
-      <div style={{ position: "relative", height: 560, overflow: "hidden" }}>
+      <div style={{ position: "relative", minHeight: isMobile ? 580 : 560, overflow: "hidden" }}>
         <div style={{
           position: "absolute", inset: 0,
           backgroundImage: `url(${TMDB_BG}${featured.backdrop})`,
-          backgroundSize: "cover", backgroundPosition: "center top", filter: "brightness(0.45)",
+          backgroundSize: "cover",
+          backgroundPosition: isMobile ? "right center" : "center top",
+          filter: "brightness(0.45)",
         }} />
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg, rgba(8,15,8,0.97) 0%, rgba(8,15,8,0.65) 50%, rgba(8,15,8,0.15) 100%)` }} />
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 180, background: `linear-gradient(to top, ${C.bg}, transparent)` }} />
+        <div style={{
+          position: "absolute", inset: 0,
+          background: isMobile
+            ? `linear-gradient(180deg, rgba(8,15,8,0.55) 0%, rgba(8,15,8,0.92) 80%)`
+            : `linear-gradient(90deg, rgba(8,15,8,0.97) 0%, rgba(8,15,8,0.65) 50%, rgba(8,15,8,0.15) 100%)`,
+        }} />
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 160, background: `linear-gradient(to top, ${C.bg}, transparent)` }} />
 
-        <nav style={{ position: "relative", padding: "28px 52px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-            <span style={{ fontFamily: "'Cinzel Display',serif", fontSize: 26, color: C.accent, letterSpacing: "0.22em" }}>Zekepeke movies</span>
-            <span style={{ fontSize: 10, color: `${C.accent}80`, letterSpacing: "0.3em" }}>(the best movies and shows)</span>
+        {/* NAV */}
+        <nav style={{
+          position: "relative", padding: navPad,
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          gap: 12, flexWrap: "wrap",
+        }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+            <span style={{
+              fontFamily: "'Cinzel Display',serif",
+              fontSize: isMobile ? 20 : 26,
+              color: C.accent, letterSpacing: "0.22em",
+            }}>Zekepeke</span>
+            {!isMobile && (
+              <span style={{ fontSize: 10, color: `${C.accent}80`, letterSpacing: "0.3em" }}>(MOVIES & SHOWS)</span>
+            )}
           </div>
-          <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.06)", borderRadius: 8, padding: 4 }}>
-            {[["all","All"],["movie","Movies"],["tv","TV Shows"]].map(([val,label]) => (
+          <div style={{
+            display: "flex", gap: 4,
+            background: "rgba(255,255,255,0.06)",
+            borderRadius: 8, padding: 4,
+          }}>
+            {[["all","All"],["movie","Movies"],["tv","TV"]].map(([val,label]) => (
               <button key={val} onClick={() => setTab(val)} style={{
                 background: tab === val ? C.accent : "transparent", border: "none",
                 color: tab === val ? C.bg : "rgba(255,255,255,0.55)",
-                padding: "8px 20px", borderRadius: 6, cursor: "pointer",
-                fontSize: 13, fontWeight: tab === val ? 600 : 400, transition: "all 0.15s",
+                padding: isMobile ? "6px 14px" : "8px 20px",
+                borderRadius: 6, cursor: "pointer",
+                fontSize: isMobile ? 12 : 13,
+                fontWeight: tab === val ? 600 : 400, transition: "all 0.15s",
               }}>{label}</button>
             ))}
           </div>
         </nav>
 
-        <div style={{ position: "relative", padding: "20px 52px 0" }}>
-          <div style={{ fontSize: 10, letterSpacing: "0.35em", color: C.accent, textTransform: "uppercase", marginBottom: 14, fontWeight: 500 }}>My favorites</div>
-          <h1 style={{ fontFamily: "'Cinzel',serif", fontSize: 52, margin: "0 0 14px", lineHeight: 1.05, maxWidth: 520, color: "#f5f0e0", letterSpacing: "0.02em", fontWeight: 600 }}>{featured.title}</h1>
-          <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 16 }}>
+        {/* HERO CONTENT */}
+        <div style={{ position: "relative", padding: heroPad, paddingBottom: isMobile ? 32 : 0 }}>
+          <div style={{
+            fontSize: isMobile ? 9 : 10,
+            letterSpacing: "0.35em", color: C.accent,
+            textTransform: "uppercase",
+            marginBottom: isMobile ? 10 : 14, fontWeight: 500,
+          }}>My favorites</div>
+          <h1 style={{
+            fontFamily: "'Cinzel',serif",
+            fontSize: `clamp(28px, 7vw, 52px)`,
+            margin: "0 0 12px", lineHeight: 1.05,
+            maxWidth: isMobile ? "100%" : 520,
+            color: "#f5f0e0", letterSpacing: "0.02em", fontWeight: 600,
+          }}>{featured.title}</h1>
+          <div style={{
+            display: "flex", gap: 12, alignItems: "center",
+            marginBottom: 14, flexWrap: "wrap",
+          }}>
             <span style={{ color: C.accent, fontWeight: 700, fontSize: 14 }}>★ {featured.rating}</span>
             <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>{featured.year}</span>
             <span style={{ color: "rgba(255,255,255,0.2)" }}>·</span>
-            {featured.genres.map(g => (
-              <span key={g} style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", background: "rgba(255,255,255,0.07)", padding: "3px 9px", borderRadius: 4, letterSpacing: "0.06em" }}>{g}</span>
+            {featured.genres.slice(0, isMobile ? 2 : 5).map(g => (
+              <span key={g} style={{
+                fontSize: 11, color: "rgba(255,255,255,0.45)",
+                background: "rgba(255,255,255,0.07)",
+                padding: "3px 9px", borderRadius: 4, letterSpacing: "0.06em",
+              }}>{g}</span>
             ))}
           </div>
-          <p style={{ color: "rgba(255,255,255,0.6)", maxWidth: 430, fontSize: 14, lineHeight: 1.7, marginBottom: 28 }}>{featured.overview}</p>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <p style={{
+            color: "rgba(255,255,255,0.65)",
+            maxWidth: isMobile ? "100%" : 430,
+            fontSize: isMobile ? 13 : 14,
+            lineHeight: 1.65,
+            marginBottom: isMobile ? 22 : 28,
+            display: "-webkit-box",
+            WebkitLineClamp: isMobile ? 4 : 6,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}>{featured.overview}</p>
+
+          {/* Watch Now + dots — stack vertically on mobile to avoid clipping */}
+          <div style={{
+            display: "flex",
+            gap: isMobile ? 18 : 12,
+            alignItems: isMobile ? "flex-start" : "center",
+            flexDirection: isMobile ? "column" : "row",
+          }}>
             <button onClick={() => setSelected(featured)}
-              style={{ background: C.accent, color: C.bg, border: "none", padding: "13px 32px", borderRadius: 7, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: "0.08em", boxShadow: `0 4px 20px ${C.accent}55` }}
-              onMouseEnter={e => { e.target.style.background = C.accentDark; e.target.style.boxShadow = `0 8px 28px ${C.accent}77`; }}
-              onMouseLeave={e => { e.target.style.background = C.accent; e.target.style.boxShadow = `0 4px 20px ${C.accent}55`; }}
+              style={{
+                background: C.accent, color: C.bg, border: "none",
+                padding: isMobile ? "14px 32px" : "13px 32px",
+                borderRadius: 7,
+                fontSize: 14, fontWeight: 700, cursor: "pointer",
+                letterSpacing: "0.08em",
+                boxShadow: `0 4px 20px ${C.accent}55`,
+                width: isMobile ? "100%" : "auto",
+                maxWidth: isMobile ? 320 : "none",
+              }}
+              onMouseEnter={e => { e.target.style.background = C.accentDark; }}
+              onMouseLeave={e => { e.target.style.background = C.accent; }}
             >▶ Watch Now</button>
             <div style={{ display: "flex", gap: 6 }}>
               {[0,1,2,3,4].map(i => (
@@ -624,15 +721,23 @@ export default function App() {
       </div>
 
       {/* SEARCH + FILTERS */}
-      <div style={{ padding: "36px 52px 0" }}>
+      <div style={{ padding: sectionPad }}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 20 }}>
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", width: isMobile ? "100%" : "auto" }}>
             <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: "rgba(255,255,255,0.3)" }}>
               {isSearching ? "⏳" : "🔍"}
             </span>
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search any movie or TV show…"
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", padding: "11px 16px 11px 38px", borderRadius: 8, fontSize: 14, width: 300, outline: "none" }}
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#fff",
+                padding: "11px 16px 11px 38px",
+                borderRadius: 8, fontSize: 14,
+                width: isMobile ? "100%" : 300,
+                outline: "none",
+              }}
               onFocus={e => e.target.style.borderColor = C.borderStrong}
               onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
           </div>
@@ -658,18 +763,26 @@ export default function App() {
       </div>
 
       {showMovies && movies.length > 0 && (
-        <section style={{ padding: "36px 52px 0" }}>
+        <section style={{ padding: sectionPad }}>
           {sectionHeader("Movies", movies.length)}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))", gap: "24px 18px" }}>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(auto-fill, minmax(${gridMin}px, 1fr))`,
+            gap: isMobile ? "20px 12px" : "24px 18px",
+          }}>
             {movies.map(item => <PosterCard key={item.id} item={item} onClick={setSelected} />)}
           </div>
         </section>
       )}
 
       {showTV && shows.length > 0 && (
-        <section style={{ padding: "40px 52px 60px" }}>
+        <section style={{ padding: lastSectionPad }}>
           {sectionHeader("TV Series", shows.length)}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))", gap: "24px 18px" }}>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(auto-fill, minmax(${gridMin}px, 1fr))`,
+            gap: isMobile ? "20px 12px" : "24px 18px",
+          }}>
             {shows.map(item => <PosterCard key={item.id} item={item} onClick={setSelected} />)}
           </div>
         </section>
@@ -684,8 +797,15 @@ export default function App() {
         </div>
       )}
 
-      <div style={{ borderTop: `1px solid rgba(255,255,255,0.06)`, padding: "24px 52px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontFamily: "'Cinzel Display',serif", color: `${C.accent}66`, fontSize: 14, letterSpacing: "0.2em" }}>Zekepeke movies</span>
+      <div style={{
+        borderTop: `1px solid rgba(255,255,255,0.06)`,
+        padding: `24px ${sidePad}px`,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 12, flexWrap: "wrap",
+      }}>
+        <span style={{ fontFamily: "'Cinzel Display',serif", color: `${C.accent}66`, fontSize: 14, letterSpacing: "0.2em" }}>Zekepeke</span>
         <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", letterSpacing: "0.06em" }}>Watch movies for free</span>
       </div>
 
