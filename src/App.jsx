@@ -29,6 +29,45 @@ function useIsMobile() {
   return m;
 }
 
+// ── URL state helpers (query-param based; works on Vercel with no rewrite) ──
+// Homepage:        /
+// Movie:           /?watch=movie-11
+// Show (browsing): /?watch=tv-1396
+// Show (playing):  /?watch=tv-1396&s=1&e=2&play=1
+function readWatchFromURL() {
+  if (typeof window === "undefined") return null;
+  const p = new URLSearchParams(window.location.search);
+  const watch = p.get("watch");
+  if (!watch) return null;
+  const dash = watch.indexOf("-");
+  if (dash < 0) return null;
+  const type = watch.slice(0, dash);
+  const id = Number(watch.slice(dash + 1));
+  if ((type !== "movie" && type !== "tv") || !id) return null;
+  return {
+    type, id,
+    season: Number(p.get("s")) || 1,
+    episode: Number(p.get("e")) || 1,
+    playing: p.get("play") === "1",
+  };
+}
+
+function writeWatchToURL(item, state = {}) {
+  if (typeof window === "undefined") return;
+  if (!item) {
+    window.history.replaceState({}, "", window.location.pathname);
+    return;
+  }
+  const p = new URLSearchParams();
+  p.set("watch", `${item.type}-${item.id}`);
+  if (item.type === "tv") {
+    if (state.season)  p.set("s", state.season);
+    if (state.episode) p.set("e", state.episode);
+  }
+  if (state.playing) p.set("play", "1");
+  window.history.replaceState({}, "", `${window.location.pathname}?${p}`);
+}
+
 const CATALOG = [
   { id: 11, type: "movie", title: "Star Wars: Episode IV - A New Hope", year: 1977, rating: 8.6,
     genres: ["Adventure","Action","Sci-Fi"],
@@ -188,15 +227,20 @@ function EpisodeRow({ ep, isActive, onClick, isMobile }) {
 }
 
 // ─── Modal — responsive: fullscreen on mobile, centered card on desktop ───
-function EpisodeModal({ item, onClose }) {
+function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }) {
   const isMobile = useIsMobile();
   const iframeRef = useRef(null);
-  const [playing, setPlaying] = useState(false);
-  const [season, setSeason]   = useState(1);
-  const [episode, setEpisode] = useState(1);
+  const [playing, setPlaying] = useState(initial.playing || false);
+  const [season, setSeason]   = useState(initial.season || 1);
+  const [episode, setEpisode] = useState(initial.episode || 1);
   const [showData, setShowData]     = useState(null);
   const [seasonData, setSeasonData] = useState(null);
   const [seasonLoading, setSeasonLoading] = useState(false);
+
+  // Keep the URL in sync with what's on screen, so a reload restores it
+  useEffect(() => {
+    onWatchStateChange?.({ season, episode, playing });
+  }, [season, episode, playing]);
 
   useEffect(() => {
     if (item.type !== "tv" || !TMDB_KEY) return;
@@ -531,6 +575,7 @@ function EpisodeModal({ item, onClose }) {
 export default function App() {
   const isMobile = useIsMobile();
   const [selected, setSelected] = useState(null);
+  const [initialWatch, setInitialWatch] = useState(null);
   const [search, setSearch]     = useState("");
   const [genre, setGenre]       = useState("All");
   const [tab, setTab]           = useState("all");
@@ -538,6 +583,51 @@ export default function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching]     = useState(false);
   const isLiveSearch = search.length >= 2;
+
+  // ── On first load: if the URL points at something, reopen it ──────────────
+  useEffect(() => {
+    const w = readWatchFromURL();
+    if (!w) return;
+    const inCatalog = CATALOG.find(x => x.type === w.type && x.id === w.id);
+    if (inCatalog) {
+      setInitialWatch(w);
+      setSelected(inCatalog);
+      return;
+    }
+    // Not in catalog — rebuild it from TMDB by id
+    if (!TMDB_KEY) return;
+    fetch(`https://api.themoviedb.org/3/${w.type}/${w.id}?api_key=${TMDB_KEY}`)
+      .then(r => r.json())
+      .then(d => {
+        if (!d || d.success === false) return;
+        const item = {
+          id: d.id, type: w.type,
+          title: w.type === "tv" ? d.name : d.title,
+          year: parseInt((w.type === "tv" ? d.first_air_date : d.release_date)?.split("-")[0]) || 0,
+          rating: Math.round((d.vote_average || 0) * 10) / 10,
+          poster: d.poster_path || null,
+          backdrop: d.backdrop_path || null,
+          overview: d.overview || "",
+          genres: (d.genres || []).map(g => g.name),
+          seasons: d.number_of_seasons,
+        };
+        setInitialWatch(w);
+        setSelected(item);
+      })
+      .catch(() => {});
+  }, []);
+
+  // ── Open / close helpers keep the URL in step ─────────────────────────────
+  const openItem = (item) => {
+    setInitialWatch(null);
+    setSelected(item);
+    writeWatchToURL(item, { season: 1, episode: 1, playing: false });
+  };
+  const closeModal = () => {
+    setSelected(null);
+    setInitialWatch(null);
+    writeWatchToURL(null);
+  };
 
   useEffect(() => {
     if (!isLiveSearch) { setSearchResults([]); setIsSearching(false); return; }
@@ -693,7 +783,7 @@ export default function App() {
             alignItems: isMobile ? "flex-start" : "center",
             flexDirection: isMobile ? "column" : "row",
           }}>
-            <button onClick={() => setSelected(featured)}
+            <button onClick={() => openItem(featured)}
               style={{
                 background: C.accent, color: C.bg, border: "none",
                 padding: isMobile ? "14px 32px" : "13px 32px",
@@ -770,7 +860,7 @@ export default function App() {
             gridTemplateColumns: `repeat(auto-fill, minmax(${gridMin}px, 1fr))`,
             gap: isMobile ? "20px 12px" : "24px 18px",
           }}>
-            {movies.map(item => <PosterCard key={item.id} item={item} onClick={setSelected} />)}
+            {movies.map(item => <PosterCard key={item.id} item={item} onClick={openItem} />)}
           </div>
         </section>
       )}
@@ -783,7 +873,7 @@ export default function App() {
             gridTemplateColumns: `repeat(auto-fill, minmax(${gridMin}px, 1fr))`,
             gap: isMobile ? "20px 12px" : "24px 18px",
           }}>
-            {shows.map(item => <PosterCard key={item.id} item={item} onClick={setSelected} />)}
+            {shows.map(item => <PosterCard key={item.id} item={item} onClick={openItem} />)}
           </div>
         </section>
       )}
@@ -809,7 +899,14 @@ export default function App() {
         <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", letterSpacing: "0.06em" }}>Watch movies for free</span>
       </div>
 
-      {selected && <EpisodeModal item={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <EpisodeModal
+          item={selected}
+          initial={initialWatch || {}}
+          onClose={closeModal}
+          onWatchStateChange={(state) => writeWatchToURL(selected, state)}
+        />
+      )}
     </div>
   );
 }
