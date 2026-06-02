@@ -152,52 +152,59 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
             }}>✕</button>
           </div>
 
-          {/* ── PLAYER (mobile fix is here) ────────────────────────────────
-              Bug: on mobile we used height:100% + flex:1 → iframe became a
-              portrait box. Vidking renders its UI relative to the iframe
-              boundary, so controls spread far above/below the actual 16:9
-              video and overlapped our outer chrome.
-              Fix: lock the iframe to a 16:9 aspect ratio and let the rest
-              of the column be empty space. The video and Vidking's overlay
-              now render proportionally.                                    */}
+          {/* ── PLAYER ──────────────────────────────────────────────────────
+              Uses the classic "padding-top trick" for the aspect ratio:
+              percentage padding is relative to the parent's WIDTH, so
+              padding-top: 56.25% (= 9/16) produces a perfect 16:9 box.
+              This is bulletproof across browsers including iOS Safari,
+              unlike CSS aspect-ratio on iframes which is unreliable.
+              The iframe absolutely fills the wrapper.                       */}
           <div style={{
             background: "#000",
             flex: isMobile ? 1 : "none",
             display: "flex",
-            alignItems: isMobile ? "flex-start" : "stretch",
-            justifyContent: "center",
+            flexDirection: "column",
             position: "relative",
             overflow: "hidden",
           }}>
-            <iframe
-              ref={iframeRef}
-              src={vidSrc}
-              style={{
-                width: "100%",
-                aspectRatio: isMobile ? "16 / 9" : "auto",
-                height: isMobile ? "auto" : "min(70vh, 720px)",
-                maxHeight: "100%",
-                border: "none",
-                display: "block",
-              }}
-              allowFullScreen
-              allow="autoplay; fullscreen"
-            />
+            <div style={{
+              position: "relative",
+              width: "100%",
+              flexShrink: 0,
+              background: "#000",
+              ...(isMobile
+                ? { paddingTop: "56.25%", height: 0 }   // 16:9 box on mobile
+                : { height: "min(70vh, 720px)" }        // fixed height on desktop
+              ),
+            }}>
+              <iframe
+                ref={iframeRef}
+                src={vidSrc}
+                style={{
+                  position: "absolute",
+                  top: 0, left: 0,
+                  width: "100%", height: "100%",
+                  border: "none",
+                  display: "block",
+                }}
+                allowFullScreen
+                allow="autoplay; fullscreen"
+              />
 
-            {/* Caption hint — Vidking controls captions; we can only nudge */}
-            {ccHint && (
-              <div style={{
-                position: "absolute", left: 12, right: 12, top: 12,
-                background: `${C.bgModal}e6`, border: `1px solid ${C.borderStrong}`,
-                color: "#f0ead0", padding: "10px 14px", borderRadius: 8,
-                fontSize: 12, lineHeight: 1.5, backdropFilter: "blur(8px)",
-                animation: "fadeIn 0.3s ease",
-                pointerEvents: "none",
-              }}>
-                <strong style={{ color: C.accent, letterSpacing: "0.08em", fontSize: 10 }}>TIP</strong>
-                <div style={{ marginTop: 4 }}>Tap the <span style={{ color: C.accent }}>CC</span> icon in the player to choose subtitles.</div>
-              </div>
-            )}
+              {/* Caption hint — Vidking controls captions; we can only nudge */}
+              {ccHint && (
+                <div style={{
+                  position: "absolute", left: 12, right: 12, top: 12,
+                  background: `${C.bgModal}e6`, border: `1px solid ${C.borderStrong}`,
+                  color: "#f0ead0", padding: "10px 14px", borderRadius: 8,
+                  fontSize: 12, lineHeight: 1.5, backdropFilter: "blur(8px)",
+                  pointerEvents: "none", zIndex: 2,
+                }}>
+                  <strong style={{ color: C.accent, letterSpacing: "0.08em", fontSize: 10 }}>TIP</strong>
+                  <div style={{ marginTop: 4 }}>Tap the <span style={{ color: C.accent }}>CC</span> icon in the player to choose subtitles.</div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Bottom action bar */}
