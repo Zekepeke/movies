@@ -16,6 +16,7 @@
   --border-strong: rgba(114,156,101,0.35);
 }
 
+
 body {
   margin: 0;
   background: var(--bg);
