@@ -6,13 +6,30 @@ import { EpisodeRow } from "./EpisodeRow";
 
 export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }) {
   const isMobile = useIsMobile();
-  const iframeRef = useRef(null);
+  const iframeRef  = useRef(null);
+  const pipWinRef  = useRef(null);
+  // Locks mobile/desktop at play-start. Prevents orientation changes from
+  // switching branches (mobile player ↔ desktop player), which unmounts the
+  // iframe and restarts the video from scratch.
+  const playerModeRef = useRef(null);
+
   const [playing, setPlaying] = useState(initial.playing || false);
   const [season,  setSeason]  = useState(initial.season  || 1);
   const [episode, setEpisode] = useState(initial.episode || 1);
-  const [showData, setShowData]     = useState(null);
-  const [seasonData, setSeasonData] = useState(null);
+  const [showData,      setShowData]      = useState(null);
+  const [seasonData,    setSeasonData]    = useState(null);
   const [seasonLoading, setSeasonLoading] = useState(false);
+
+  // Close any open PiP window when the modal unmounts so it never keeps
+  // playing in the background while a second instance is also rendering.
+  useEffect(() => {
+    return () => {
+      if (pipWinRef.current && !pipWinRef.current.closed) {
+        pipWinRef.current.close();
+        pipWinRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     onWatchStateChange?.({ season, episode, playing });
@@ -42,6 +59,13 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
     return () => window.removeEventListener("keydown", onKey);
   }, [playing, item.type, onClose]);
 
+  // Freeze the mobile/desktop decision at the moment play starts.
+  // While playing, ignore subsequent isMobile changes (orientation flips).
+  // Reset when playback stops so the next play picks up the correct layout.
+  if (playing && playerModeRef.current === null) playerModeRef.current = isMobile;
+  if (!playing) playerModeRef.current = null;
+  const activeMobile = playing ? (playerModeRef.current ?? isMobile) : isMobile;
+
   const seasons = showData?.seasons?.filter(s => s.season_number > 0)
     || (item.seasons
       ? Array.from({ length: item.seasons }, (_, i) => ({ season_number: i + 1, name: `Season ${i + 1}` }))
@@ -54,14 +78,39 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
 
   const currentEp     = episodes?.find(e => e.episode_number === episode);
   const currentEpName = currentEp?.name;
-  const goFullscreen  = () => iframeRef.current?.requestFullscreen();
+
+  // Fullscreen: standard API → webkit prefix → new-tab fallback.
+  // iOS Safari does not support requestFullscreen() on cross-origin iframes,
+  // so we fall back to opening the embed URL directly, which hands off to the
+  // native AVPlayer and also gives proper CC support on iOS.
+  const goFullscreen = async () => {
+    const el = iframeRef.current;
+    if (!el) return;
+    try {
+      if (el.requestFullscreen) {
+        await el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+      } else {
+        window.open(vidSrc, "_blank");
+      }
+    } catch {
+      window.open(vidSrc, "_blank");
+    }
+  };
 
   const goPiP = async () => {
+    // Close any still-open PiP before creating a new one.
+    if (pipWinRef.current && !pipWinRef.current.closed) {
+      pipWinRef.current.close();
+      pipWinRef.current = null;
+    }
     const subtitle = item.type === "tv"
       ? `${item.title} — S${season} · E${episode}${currentEpName ? ` · ${currentEpName}` : ""}`
       : item.title;
     if ("documentPictureInPicture" in window) {
       const pipWin = await window.documentPictureInPicture.requestWindow({ width: 720, height: 460 });
+      pipWinRef.current = pipWin;
       pipWin.document.body.style.cssText = `margin:0;background:${C.bg};overflow:hidden;display:flex;flex-direction:column;height:100vh;font-family:system-ui,-apple-system,'DM Sans',sans-serif;color:#fff;`;
       const header = pipWin.document.createElement("div");
       header.style.cssText = `padding:10px 14px;background:${C.bgModal};border-bottom:1px solid ${C.border};flex-shrink:0;display:flex;align-items:center;gap:10px;`;
@@ -70,7 +119,7 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
       const f = pipWin.document.createElement("iframe");
       f.src = vidSrc;
       f.style.cssText = "flex:1;width:100%;border:none;display:block;background:#000;";
-      f.allow = "autoplay; fullscreen";
+      f.allow = "autoplay; fullscreen; picture-in-picture";
       pipWin.document.body.appendChild(f);
     } else {
       window.open(vidSrc, "zekepeke-pip", "width=720,height=460,toolbar=no,menubar=no,resizable=yes");
@@ -80,7 +129,7 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
   const selectEpisode = (n) => { setEpisode(n); setPlaying(true); };
 
   // ════════════ MOBILE PLAYER ═══════════════════════════════════════════════
-  if (playing && isMobile) {
+  if (playing && activeMobile) {
     return (
       <div style={{
         position: "fixed", inset: 0, zIndex: 9000,
@@ -136,7 +185,7 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
             src={vidSrc}
             style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
             allowFullScreen
-            allow="autoplay; fullscreen"
+            allow="autoplay; fullscreen; picture-in-picture"
           />
         </div>
 
@@ -167,7 +216,6 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
                 <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em" }}>{item.year}</span>
               )}
             </div>
-            {/* Episode overview, or movie overview as fallback */}
             {(currentEp?.overview || item.overview) && (
               <p style={{
                 fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.65,
@@ -180,7 +228,9 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
 
           <div style={{ height: 1, background: C.border, margin: "0 16px" }} />
 
-          {/* Subtitles / CC guidance */}
+          {/* CC guidance — captions live inside the cross-origin vidking iframe;
+              we cannot attach or toggle text tracks from outside it.
+              Fullscreen on iOS hands off to AVPlayer which has native CC. */}
           <div style={{ padding: "12px 16px" }}>
             <div style={{
               background: `${C.accent}0d`,
@@ -188,7 +238,6 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
               borderRadius: 10, padding: "12px 14px",
               display: "flex", gap: 12, alignItems: "flex-start",
             }}>
-              {/* CC badge */}
               <div style={{
                 width: 34, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1,
                 background: `${C.accent}1e`, border: `1px solid ${C.accent}55`,
@@ -203,7 +252,7 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
                 <div style={{ fontSize: 11, color: "rgba(255,255,255,0.42)", lineHeight: 1.6 }}>
                   Tap{" "}
                   <span style={{ color: C.accent, fontWeight: 600 }}>⛶ Full</span>
-                  {" "}below for native iOS caption support. You can also tap the CC icon directly inside the player.
+                  {" "}below for native iOS caption support. Or use the CC icon directly inside the player.
                 </div>
               </div>
             </div>
@@ -211,7 +260,6 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
 
           <div style={{ height: 1, background: C.border, margin: "0 16px" }} />
 
-          {/* Server tip */}
           <div style={{ padding: "10px 16px 16px" }}>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", letterSpacing: "0.1em", lineHeight: 1.6 }}>
               If playback fails, tap the settings icon inside the player and try a different server.
@@ -301,7 +349,7 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
               src={vidSrc}
               style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none", display: "block" }}
               allowFullScreen
-              allow="autoplay; fullscreen"
+              allow="autoplay; fullscreen; picture-in-picture"
             />
           </div>
 
