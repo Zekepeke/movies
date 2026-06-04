@@ -4,9 +4,6 @@ import { TMDB_W, TMDB_BG, TMDB_KEY, fetchTVDetails, fetchTVSeason } from "../lib
 import { useIsMobile } from "../hooks/useIsMobile";
 import { EpisodeRow } from "./EpisodeRow";
 
-// One-time caption hint shown on mobile (Vidking doesn't expose a default-subtitle param).
-const CC_HINT_KEY = "zekepeke:cc-hint-seen";
-
 export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }) {
   const isMobile = useIsMobile();
   const iframeRef = useRef(null);
@@ -16,33 +13,16 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
   const [showData, setShowData]     = useState(null);
   const [seasonData, setSeasonData] = useState(null);
   const [seasonLoading, setSeasonLoading] = useState(false);
-  const [ccHint, setCcHint] = useState(false);
 
-  // Sync URL whenever the view changes
   useEffect(() => {
     onWatchStateChange?.({ season, episode, playing });
   }, [season, episode, playing]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Show caption hint once, only on mobile, only on first play
-  useEffect(() => {
-    if (!playing || !isMobile) return;
-    if (typeof window === "undefined") return;
-    if (window.localStorage.getItem(CC_HINT_KEY)) return;
-    setCcHint(true);
-    const t = setTimeout(() => {
-      setCcHint(false);
-      window.localStorage.setItem(CC_HINT_KEY, "1");
-    }, 5500);
-    return () => clearTimeout(t);
-  }, [playing, isMobile]);
-
-  // Fetch TV details for season list
   useEffect(() => {
     if (item.type !== "tv" || !TMDB_KEY) return;
     fetchTVDetails(item.id).then(setShowData).catch(() => {});
   }, [item.id, item.type]);
 
-  // Fetch episodes whenever season changes
   useEffect(() => {
     if (item.type !== "tv" || !TMDB_KEY) return;
     setSeasonLoading(true);
@@ -51,7 +31,6 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
       .catch(() => setSeasonLoading(false));
   }, [item.id, item.type, season]);
 
-  // Esc: back to episodes (TV) or close
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") {
@@ -73,7 +52,8 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
     ? `https://www.vidking.net/embed/tv/${item.id}/${season}/${episode}?color=729C65&autoPlay=true&nextEpisode=true`
     : `https://www.vidking.net/embed/movie/${item.id}?color=729C65&autoPlay=true`;
 
-  const currentEpName = episodes?.find(e => e.episode_number === episode)?.name;
+  const currentEp     = episodes?.find(e => e.episode_number === episode);
+  const currentEpName = currentEp?.name;
   const goFullscreen  = () => iframeRef.current?.requestFullscreen();
 
   const goPiP = async () => {
@@ -99,47 +79,209 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
 
   const selectEpisode = (n) => { setEpisode(n); setPlaying(true); };
 
-  // ════════════ PLAYER MODE ═════════════════════════════════════════════════
+  // ════════════ MOBILE PLAYER ═══════════════════════════════════════════════
+  if (playing && isMobile) {
+    return (
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 9000,
+        background: C.bgModal,
+        display: "flex", flexDirection: "column",
+      }}>
+        {/* Header */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "10px 14px",
+          background: C.bgModal,
+          borderBottom: `1px solid ${C.border}`,
+          flexShrink: 0,
+        }}>
+          {item.type === "tv" && (
+            <button onClick={() => setPlaying(false)} style={{
+              background: "transparent", border: "none",
+              color: "rgba(255,255,255,0.65)", cursor: "pointer",
+              padding: "4px 10px 4px 0",
+              display: "flex", alignItems: "center", gap: 5, flexShrink: 0,
+            }}>
+              <span style={{ fontSize: 15 }}>←</span>
+              <span style={{ fontSize: 11, letterSpacing: "0.06em", fontWeight: 500 }}>Episodes</span>
+            </button>
+          )}
+          <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+            <div style={{
+              fontFamily: "'Cinzel',serif", fontSize: 13, color: "#f0ead0",
+              letterSpacing: "0.04em",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>{item.title}</div>
+            {item.type === "tv" && (
+              <div style={{ fontSize: 10, color: C.accent, fontWeight: 600, letterSpacing: "0.08em", marginTop: 1 }}>
+                S{season} · E{episode}
+              </div>
+            )}
+          </div>
+          <button onClick={onClose} style={{
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+            color: "rgba(255,255,255,0.7)", width: 28, height: 28, borderRadius: "50%",
+            cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>✕</button>
+        </div>
+
+        {/* 16:9 video — always flush to top under header */}
+        <div style={{
+          position: "relative", width: "100%", paddingTop: "56.25%",
+          flexShrink: 0, background: "#000",
+        }}>
+          <iframe
+            ref={iframeRef}
+            src={vidSrc}
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+            allowFullScreen
+            allow="autoplay; fullscreen"
+          />
+        </div>
+
+        {/* Info panel — fills remaining space so no dead black */}
+        <div style={{ flex: 1, overflowY: "auto", background: C.bgModal }}>
+
+          {/* Episode / movie meta */}
+          <div style={{ padding: "14px 16px 12px" }}>
+            {item.type === "tv" && currentEpName && (
+              <div style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: 15, color: "#f0ead0",
+                letterSpacing: "0.03em", marginBottom: 4,
+              }}>{currentEpName}</div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              {item.type === "tv" && (
+                <span style={{ fontSize: 10, color: C.accent, fontWeight: 700, letterSpacing: "0.12em" }}>
+                  SEASON {season} · EP {episode}
+                </span>
+              )}
+              {currentEp?.runtime && (
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em" }}>
+                  {currentEp.runtime} min
+                </span>
+              )}
+              {item.type === "movie" && (
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em" }}>{item.year}</span>
+              )}
+            </div>
+            {/* Episode overview, or movie overview as fallback */}
+            {(currentEp?.overview || item.overview) && (
+              <p style={{
+                fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.65,
+                margin: "10px 0 0",
+                display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}>{currentEp?.overview || item.overview}</p>
+            )}
+          </div>
+
+          <div style={{ height: 1, background: C.border, margin: "0 16px" }} />
+
+          {/* Subtitles / CC guidance */}
+          <div style={{ padding: "12px 16px" }}>
+            <div style={{
+              background: `${C.accent}0d`,
+              border: `1px solid ${C.border}`,
+              borderRadius: 10, padding: "12px 14px",
+              display: "flex", gap: 12, alignItems: "flex-start",
+            }}>
+              {/* CC badge */}
+              <div style={{
+                width: 34, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1,
+                background: `${C.accent}1e`, border: `1px solid ${C.accent}55`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <span style={{ fontSize: 9, fontWeight: 800, color: C.accent, letterSpacing: "0.04em" }}>CC</span>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", fontWeight: 600, marginBottom: 4 }}>
+                  Closed Captions
+                </div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.42)", lineHeight: 1.6 }}>
+                  Tap{" "}
+                  <span style={{ color: C.accent, fontWeight: 600 }}>⛶ Full</span>
+                  {" "}below for native iOS caption support. You can also tap the CC icon directly inside the player.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ height: 1, background: C.border, margin: "0 16px" }} />
+
+          {/* Server tip */}
+          <div style={{ padding: "10px 16px 16px" }}>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", letterSpacing: "0.1em", lineHeight: 1.6 }}>
+              If playback fails, tap the settings icon inside the player and try a different server.
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom actions with iOS safe-area inset */}
+        <div style={{
+          display: "flex", gap: 8, justifyContent: "flex-end",
+          padding: "10px 14px",
+          paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))",
+          background: C.bgBar,
+          borderTop: "1px solid rgba(255,255,255,0.05)",
+          flexShrink: 0,
+        }}>
+          <button onClick={goPiP} style={{
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+            color: "rgba(255,255,255,0.65)",
+            padding: "9px 18px", borderRadius: 7, cursor: "pointer",
+            fontSize: 12, fontWeight: 600, letterSpacing: "0.04em",
+          }}>⧉ PiP</button>
+          <button onClick={goFullscreen} style={{
+            background: `${C.accent}22`, border: `1px solid ${C.borderStrong}`,
+            color: C.accent,
+            padding: "9px 18px", borderRadius: 7, cursor: "pointer",
+            fontSize: 12, fontWeight: 600, letterSpacing: "0.04em",
+          }}>⛶ Full</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ════════════ DESKTOP PLAYER ══════════════════════════════════════════════
   if (playing) {
     return (
       <div onClick={onClose} style={{
         position: "fixed", inset: 0, zIndex: 9000,
         background: "rgba(0,0,0,0.95)", backdropFilter: "blur(8px)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        padding: isMobile ? 0 : 16,
+        padding: 16,
       }}>
         <div onClick={e => e.stopPropagation()} style={{
-          width: isMobile ? "100%" : "min(1280px, 96vw)",
-          height: isMobile ? "100%" : "auto",
+          width: "min(1280px, 96vw)",
           background: "#000",
-          borderRadius: isMobile ? 0 : 12, overflow: "hidden",
-          border: isMobile ? "none" : `1px solid ${C.border}`,
-          boxShadow: isMobile ? "none" : "0 40px 100px rgba(0,0,0,0.9)",
+          borderRadius: 12, overflow: "hidden",
+          border: `1px solid ${C.border}`,
+          boxShadow: "0 40px 100px rgba(0,0,0,0.9)",
           display: "flex", flexDirection: "column",
         }}>
-
           {/* Top bar */}
           <div style={{
-            display: "flex", alignItems: "center", gap: isMobile ? 8 : 16,
-            padding: isMobile ? "10px 12px" : "12px 18px",
+            display: "flex", alignItems: "center", gap: 16,
+            padding: "12px 18px",
             background: C.bgModal, borderBottom: `1px solid ${C.border}`,
             flexShrink: 0,
           }}>
             {item.type === "tv" && (
-              <button onClick={() => setPlaying(false)}
-                style={{
-                  background: "transparent", border: "none",
-                  color: "rgba(255,255,255,0.7)", cursor: "pointer",
-                  fontSize: isMobile ? 12 : 13, fontWeight: 500,
-                  padding: isMobile ? "4px 8px" : "6px 12px",
-                  borderRadius: 6, letterSpacing: "0.04em",
-                  display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
-                }}>← {isMobile ? "" : "Episodes"}</button>
+              <button onClick={() => setPlaying(false)} style={{
+                background: "transparent", border: "none",
+                color: "rgba(255,255,255,0.7)", cursor: "pointer",
+                fontSize: 13, fontWeight: 500,
+                padding: "6px 12px", borderRadius: 6, letterSpacing: "0.04em",
+                display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
+              }}>← Episodes</button>
             )}
             <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 8, overflow: "hidden" }}>
-              <span style={{ fontFamily: "'Cinzel',serif", fontSize: isMobile ? 13 : 15, color: "#f0ead0", letterSpacing: "0.04em", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>{item.title}</span>
+              <span style={{ fontFamily: "'Cinzel',serif", fontSize: 15, color: "#f0ead0", letterSpacing: "0.04em", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>{item.title}</span>
               {item.type === "tv" && (
-                <span style={{ fontSize: isMobile ? 11 : 12, color: C.accent, fontWeight: 600, letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: 12, color: C.accent, fontWeight: 600, letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
                   S{season}·E{episode}
                 </span>
               )}
@@ -152,88 +294,40 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
             }}>✕</button>
           </div>
 
-          {/* ── PLAYER ──────────────────────────────────────────────────────
-              Uses the classic "padding-top trick" for the aspect ratio:
-              percentage padding is relative to the parent's WIDTH, so
-              padding-top: 56.25% (= 9/16) produces a perfect 16:9 box.
-              This is bulletproof across browsers including iOS Safari,
-              unlike CSS aspect-ratio on iframes which is unreliable.
-              The iframe absolutely fills the wrapper.                       */}
-          <div style={{
-            background: "#000",
-            flex: isMobile ? 1 : "none",
-            display: "flex",
-            flexDirection: "column",
-            position: "relative",
-            overflow: "hidden",
-          }}>
-            <div style={{
-              position: "relative",
-              width: "100%",
-              flexShrink: 0,
-              background: "#000",
-              ...(isMobile
-                ? { paddingTop: "56.25%", height: 0 }   // 16:9 box on mobile
-                : { height: "min(70vh, 720px)" }        // fixed height on desktop
-              ),
-            }}>
-              <iframe
-                ref={iframeRef}
-                src={vidSrc}
-                style={{
-                  position: "absolute",
-                  top: 0, left: 0,
-                  width: "100%", height: "100%",
-                  border: "none",
-                  display: "block",
-                }}
-                allowFullScreen
-                allow="autoplay; fullscreen"
-              />
-
-              {/* Caption hint — Vidking controls captions; we can only nudge */}
-              {ccHint && (
-                <div style={{
-                  position: "absolute", left: 12, right: 12, top: 12,
-                  background: `${C.bgModal}e6`, border: `1px solid ${C.borderStrong}`,
-                  color: "#f0ead0", padding: "10px 14px", borderRadius: 8,
-                  fontSize: 12, lineHeight: 1.5, backdropFilter: "blur(8px)",
-                  pointerEvents: "none", zIndex: 2,
-                }}>
-                  <strong style={{ color: C.accent, letterSpacing: "0.08em", fontSize: 10 }}>TIP</strong>
-                  <div style={{ marginTop: 4 }}>Tap the <span style={{ color: C.accent }}>CC</span> icon in the player to choose subtitles.</div>
-                </div>
-              )}
-            </div>
+          {/* Player */}
+          <div style={{ position: "relative", height: "min(70vh, 720px)", background: "#000", flexShrink: 0 }}>
+            <iframe
+              ref={iframeRef}
+              src={vidSrc}
+              style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none", display: "block" }}
+              allowFullScreen
+              allow="autoplay; fullscreen"
+            />
           </div>
 
           {/* Bottom action bar */}
           <div style={{
             display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: isMobile ? "8px 10px" : "10px 18px",
+            padding: "10px 18px",
             background: C.bgBar, borderTop: "1px solid rgba(255,255,255,0.05)",
             gap: 8, flexWrap: "wrap", flexShrink: 0,
           }}>
-            {!isMobile && (
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", letterSpacing: "0.15em" }}>
-                IF PLAYBACK FAILS, TRY "SHOW ALL SERVERS" INSIDE THE PLAYER
-              </span>
-            )}
-            <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", letterSpacing: "0.15em" }}>
+              IF PLAYBACK FAILS, TRY "SHOW ALL SERVERS" INSIDE THE PLAYER
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
               <button onClick={goPiP} style={{
                 background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
                 color: "rgba(255,255,255,0.7)",
-                padding: isMobile ? "6px 10px" : "7px 16px",
-                borderRadius: 6, cursor: "pointer",
-                fontSize: isMobile ? 11 : 12, fontWeight: 600, letterSpacing: "0.04em",
-              }}>⧉ {isMobile ? "PiP" : "Picture in Picture"}</button>
+                padding: "7px 16px", borderRadius: 6, cursor: "pointer",
+                fontSize: 12, fontWeight: 600, letterSpacing: "0.04em",
+              }}>⧉ Picture in Picture</button>
               <button onClick={goFullscreen} style={{
                 background: `${C.accent}1a`, border: `1px solid ${C.borderStrong}`,
                 color: C.accent,
-                padding: isMobile ? "6px 10px" : "7px 16px",
-                borderRadius: 6, cursor: "pointer",
-                fontSize: isMobile ? 11 : 12, fontWeight: 600, letterSpacing: "0.04em",
-              }}>⛶ {isMobile ? "Full" : "Fullscreen"}</button>
+                padding: "7px 16px", borderRadius: 6, cursor: "pointer",
+                fontSize: 12, fontWeight: 600, letterSpacing: "0.04em",
+              }}>⛶ Fullscreen</button>
             </div>
           </div>
         </div>
@@ -257,8 +351,9 @@ export function EpisodeModal({ item, onClose, initial = {}, onWatchStateChange }
         overflow: "hidden",
         border: isMobile ? "none" : `1px solid ${C.border}`,
         boxShadow: isMobile ? "none" : "0 40px 80px rgba(0,0,0,0.8)",
-        minHeight: isMobile ? "100vh" : "auto",
+        minHeight: isMobile ? "100dvh" : "auto",
         margin: isMobile ? 0 : "auto",
+        paddingBottom: isMobile ? "env(safe-area-inset-bottom, 0px)" : 0,
       }}>
         {/* Hero with backdrop */}
         <div style={{

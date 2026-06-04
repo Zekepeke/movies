@@ -21,6 +21,8 @@ body {
   background: var(--bg);
   color: #fff;
   font-family: 'DM Sans', sans-serif;
+  /* respect iOS notch / home indicator */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* native number input arrows — hide for cleaner look */
